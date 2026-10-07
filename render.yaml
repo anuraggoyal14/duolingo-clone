@@ -1,0 +1,19 @@
+# Render Blueprint for the FastAPI backend (the Next.js frontend is deployed on Vercel).
+services:
+  - type: web
+    name: duolingo-clone-api
+    runtime: python
+    rootDir: backend
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.10
+      - key: DEFAULT_TIMEZONE
+        value: Asia/Kolkata
+      - key: HEART_REGEN_MINUTES
+        value: "30"
+      - key: ENABLE_DEV_TOOLS
+        value: "true"
