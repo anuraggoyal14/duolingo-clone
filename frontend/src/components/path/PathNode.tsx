@@ -23,6 +23,7 @@ export function PathNode({ skill, index, color, isLastInUnit }: PathNodeProps) {
   const isActive = skill.status === "active";
   const isLocked = skill.status === "locked";
   const isCompleted = skill.status === "completed";
+  const isLegendary = skill.legendary;
 
   useEffect(() => {
     if (!open) return;
@@ -37,7 +38,18 @@ export function PathNode({ skill, index, color, isLastInUnit }: PathNodeProps) {
   }, [open]);
 
   const progress = skill.total_lessons ? skill.lessons_completed / skill.total_lessons : 0;
-  const Icon = isLocked ? LockIcon : isCompleted ? CheckIcon : isLastInUnit ? TrophyIcon : StarIcon;
+  const Icon = isLocked
+    ? LockIcon
+    : isLegendary
+      ? TrophyIcon
+      : isCompleted
+        ? CheckIcon
+        : isLastInUnit
+          ? TrophyIcon
+          : StarIcon;
+  // Legendary skills turn gold, like the original.
+  const fill = isLocked ? "bg-locked text-faint" : isLegendary ? "bg-bee text-white" : `${theme.bg} text-white`;
+  const lip = isLocked ? "var(--locked-shadow)" : isLegendary ? "#e5a400" : theme.lipHex;
 
   return (
     <div ref={ref} className={`relative flex justify-center ${isActive ? "mb-3 mt-10" : ""} ${open ? "z-20" : ""}`} style={{ transform: `translateX(${OFFSETS[index % OFFSETS.length]}px)` }}>
@@ -52,15 +64,13 @@ export function PathNode({ skill, index, color, isLastInUnit }: PathNodeProps) {
         {isActive && <ProgressRing progress={progress} color={theme.hex} />}
         <button
           onClick={() => setOpen((v) => !v)}
-          aria-label={`${skill.title}: ${skill.status}`}
+          aria-label={`${skill.title}: ${isLegendary ? "legendary" : skill.status}`}
           aria-expanded={open}
           className={[
             "relative z-[1] flex h-[57px] w-[70px] items-center justify-center rounded-[50%] transition-transform active:translate-y-[6px]",
-            isLocked ? "bg-locked text-faint" : `${theme.bg} text-white`,
+            fill,
           ].join(" ")}
-          style={{
-            boxShadow: `0 8px 0 ${isLocked ? "var(--locked-shadow)" : theme.lipHex}`,
-          }}
+          style={{ boxShadow: `0 8px 0 ${lip}` }}
         >
           <Icon className="h-8 w-8" />
         </button>
@@ -114,7 +124,9 @@ function NodePopover({ skill, color }: { skill: Skill; color: UnitColor }) {
           {locked
             ? "Complete all levels above to unlock this!"
             : completed
-              ? "You've completed this skill. Practice to keep it fresh!"
+              ? skill.legendary
+                ? "Legendary! You've mastered this skill."
+                : "Prove your mastery with a timed Legendary challenge!"
               : `Lesson ${lessonNumber} of ${skill.total_lessons}`}
         </p>
         {locked ? (
@@ -122,12 +134,22 @@ function NodePopover({ skill, color }: { skill: Skill; color: UnitColor }) {
             Locked
           </div>
         ) : (
-          <Link
-            href={completed ? "/practice" : `/lesson/${skill.next_lesson_id}`}
-            className={`flex h-12 w-full items-center justify-center rounded-2xl border-b-4 border-[#e5e5e5] bg-white text-[15px] font-extrabold uppercase tracking-wide active:translate-y-[2px] active:border-b-2 ${theme.text}`}
-          >
-            {completed ? "Practice +10 XP" : "Start +10 XP"}
-          </Link>
+          <div className="flex flex-col gap-2">
+            {completed && !skill.legendary && (
+              <Link
+                href={`/legendary/${skill.id}`}
+                className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl border-b-4 border-bee-dark bg-bee text-[15px] font-extrabold uppercase tracking-wide text-white active:translate-y-[2px] active:border-b-2"
+              >
+                <TrophyIcon className="h-5 w-5" /> Legendary +40 XP
+              </Link>
+            )}
+            <Link
+              href={completed ? "/practice" : `/lesson/${skill.next_lesson_id}`}
+              className={`flex h-12 w-full items-center justify-center rounded-2xl border-b-4 border-[#e5e5e5] bg-white text-[15px] font-extrabold uppercase tracking-wide active:translate-y-[2px] active:border-b-2 ${theme.text}`}
+            >
+              {completed ? "Practice +10 XP" : "Start +10 XP"}
+            </Link>
+          </div>
         )}
       </div>
     </div>

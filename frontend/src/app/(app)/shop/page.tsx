@@ -7,6 +7,7 @@ import { DumbbellIcon, GemIcon, HeartIcon } from "@/components/ui/icons";
 import { useToast } from "@/components/ui/Toast";
 import { api, ApiError } from "@/lib/api";
 import { useCountdown } from "@/lib/hooks";
+import type { Me } from "@/lib/types";
 import { useUser } from "@/lib/user-context";
 
 export default function ShopPage() {
@@ -19,17 +20,21 @@ export default function ShopPage() {
   const full = me.hearts >= me.max_hearts;
   const affordable = me.gems >= me.heart_refill_cost;
 
-  const refill = async () => {
+  const freezesFull = me.streak_freezes >= me.max_streak_freezes;
+
+  const purchase = async (action: () => Promise<Me>, message: string, icon: React.ReactNode) => {
     setBusy(true);
     try {
-      setMe(await api.refillHearts());
-      toast("Hearts refilled!", { tone: "success", icon: <HeartIcon className="h-5 w-5" /> });
+      setMe(await action());
+      toast(message, { tone: "success", icon });
     } catch (e) {
       toast(e instanceof ApiError ? e.message : "Purchase failed", { tone: "error" });
     } finally {
       setBusy(false);
     }
   };
+  const refill = () => purchase(api.refillHearts, "Hearts refilled!", <HeartIcon className="h-5 w-5" />);
+  const buyFreeze = () => purchase(api.buyStreakFreeze, "Streak Freeze equipped!", <span>🧊</span>);
 
   return (
     <div>
@@ -70,8 +75,21 @@ export default function ShopPage() {
       <ShopRow
         icon={<span className="text-5xl">🧊</span>}
         title="Streak Freeze"
-        description="Keeps your streak in place for one full day of inactivity. Coming soon!"
-        action={<Button disabled className="min-w-[120px]">Soon</Button>}
+        description={`Keeps your streak in place for one full day of inactivity. ${me.streak_freezes} / ${me.max_streak_freezes} equipped.`}
+        action={
+          <Button
+            variant="outline"
+            onClick={buyFreeze}
+            disabled={busy || freezesFull || me.gems < me.streak_freeze_cost}
+            className="min-w-[120px]"
+          >
+            {freezesFull ? "Equipped" : (
+              <>
+                <GemIcon className="h-5 w-5" /> {me.streak_freeze_cost}
+              </>
+            )}
+          </Button>
+        }
       />
       <div className="mt-10 rounded-2xl bg-gradient-to-r from-beetle to-sky p-6 text-white">
         <h2 className="text-xl font-extrabold">Super subscription</h2>

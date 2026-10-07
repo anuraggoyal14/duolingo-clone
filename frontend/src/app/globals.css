@@ -119,6 +119,10 @@ body {
   0% { transform: translateY(-20vh) rotate(0deg); opacity: 1; }
   100% { transform: translateY(110vh) rotate(720deg); opacity: 0.9; }
 }
+@keyframes hop {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
 @keyframes flame-flicker {
   0%, 100% { transform: scale(1) rotate(-1deg); }
   50% { transform: scale(1.06) rotate(1deg); }
@@ -131,6 +135,7 @@ body {
 .animate-fade-in { animation: fade-in 0.2s ease-out both; }
 .animate-float { animation: float 3s ease-in-out infinite; }
 .animate-flame { animation: flame-flicker 1.2s ease-in-out infinite; }
+.animate-bounce-soft-sm { animation: hop 0.9s ease-in-out infinite; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

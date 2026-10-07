@@ -51,8 +51,16 @@ function StatCard({ label, value, color, icon }: { label: string; value: React.R
   );
 }
 
-export function LessonCompleteScreen({ result, kind, onContinue }: { result: Completion; kind: "lesson" | "practice"; onContinue: () => void }) {
-  const title = result.perfect && kind === "lesson" ? "Perfect lesson!" : kind === "practice" ? "Practice complete!" : "Lesson complete!";
+export function LessonCompleteScreen({ result, onContinue }: { result: Completion; onContinue: () => void }) {
+  const kind = result.kind;
+  const title =
+    kind === "legendary"
+      ? "Legendary!"
+      : kind === "practice"
+        ? "Practice complete!"
+        : result.perfect
+          ? "Perfect lesson!"
+          : "Lesson complete!";
   return (
     <div className="relative flex min-h-screen flex-col">
       <Confetti />
@@ -64,6 +72,12 @@ export function LessonCompleteScreen({ result, kind, onContinue }: { result: Com
             <p className="mt-2 text-lg font-bold text-muted">You finished the “{result.skill_title}” skill!</p>
           )}
           {kind === "practice" && <p className="mt-2 text-lg font-bold text-muted">You earned a heart back ❤️</p>}
+          {kind === "legendary" && (
+            <p className="mt-2 text-lg font-bold text-muted">“{result.skill_title}” is now Legendary 🏆</p>
+          )}
+          {result.streak_freezes_used > 0 && (
+            <p className="mt-2 font-bold text-sky">🧊 A streak freeze protected your streak!</p>
+          )}
         </div>
         <div className="flex w-full max-w-md gap-3">
           <StatCard label="Total XP" value={result.xp_earned} color="#ffc800" icon={<XpIcon className="h-6 w-6" />} />

@@ -7,6 +7,7 @@ import type {
   Leaderboard,
   Me,
   Profile,
+  Quests,
 } from "./types";
 
 /** Error carrying the backend's stable `error.code` (e.g. "out_of_hearts"). */
@@ -60,11 +61,16 @@ export const api = {
 
   startLesson: (lessonId: number) => post<Attempt>(`/lessons/${lessonId}/attempts`),
   startPractice: () => post<Attempt>("/practice/attempts"),
+  startLegendary: (skillId: number) => post<Attempt>(`/skills/${skillId}/legendary`),
   answer: (attemptId: string, exerciseId: number, answer: AnswerValue) =>
     post<AnswerResult>(`/attempts/${attemptId}/answers`, { exercise_id: exerciseId, answer }),
   complete: (attemptId: string) => post<Completion>(`/attempts/${attemptId}/complete`),
 
   refillHearts: () => post<Me>("/shop/refill-hearts"),
+  buyStreakFreeze: () => post<Me>("/shop/streak-freeze"),
+
+  quests: () => request<Quests>("/quests"),
+  claimQuest: (code: string) => post<Quests>(`/quests/${code}/claim`),
 
   advanceDay: (days = 1) => post<{ day_offset: number; today: string }>("/dev/advance-day", { days }),
   resetProgress: () => post<{ day_offset: number; today: string }>("/dev/reset"),

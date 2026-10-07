@@ -3,13 +3,14 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
-import { FlameIcon, GemIcon, HeartIcon, SpainFlag } from "@/components/ui/icons";
+import { FlameIcon, GemIcon, HeartIcon, SpainFlag, XpIcon } from "@/components/ui/icons";
+import { ProgressBar } from "@/components/ui/ProgressBar";
 import { useCountdown } from "@/lib/hooks";
 import { useUser } from "@/lib/user-context";
 
-type PanelKey = "course" | "streak" | "gems" | "hearts";
+type PanelKey = "course" | "streak" | "xp" | "gems" | "hearts";
 
-/** Top stats row (course flag, streak, gems, hearts), each opening a Duolingo-style dropdown. */
+/** Top stats row (course flag, streak, XP, gems, hearts), each opening a Duolingo-style dropdown. */
 export function StatsBar({ compact = false }: { compact?: boolean }) {
   const { me } = useUser();
   const [open, setOpen] = useState<PanelKey | null>(null);
@@ -47,6 +48,10 @@ export function StatsBar({ compact = false }: { compact?: boolean }) {
         <FlameIcon className="h-6 w-6" dim={!me.streak_extended_today} />
         {me.streak}
       </button>
+      <button className={`${item} text-bee-dark`} onClick={() => toggle("xp")} aria-label={`${me.xp_total} total XP`}>
+        <XpIcon className="h-6 w-6" />
+        {me.xp_total}
+      </button>
       <button className={`${item} text-sky`} onClick={() => toggle("gems")} aria-label={`${me.gems} gems`}>
         <GemIcon className="h-6 w-6" />
         {me.gems}
@@ -60,6 +65,7 @@ export function StatsBar({ compact = false }: { compact?: boolean }) {
         <div className="animate-pop-in absolute right-0 top-full z-40 mt-3 w-full min-w-[300px] rounded-2xl border-2 border-line bg-panel p-5 shadow-lg">
           {open === "course" && <CoursePanel />}
           {open === "streak" && <StreakPanel />}
+          {open === "xp" && <XpPanel />}
           {open === "gems" && <GemsPanel />}
           {open === "hearts" && <HeartsPanel onNavigate={() => setOpen(null)} />}
         </div>
@@ -93,8 +99,31 @@ function StreakPanel() {
             ? "You've extended your streak today. See you tomorrow!"
             : "Do a lesson today to extend your streak!"}
         </p>
+        <p className="mt-2 text-sm font-bold text-sky">
+          🧊 {me.streak_freezes} / {me.max_streak_freezes} streak freezes equipped
+        </p>
       </div>
       <FlameIcon className="h-14 w-12" dim={!me.streak_extended_today} />
+    </div>
+  );
+}
+
+function XpPanel() {
+  const { me } = useUser();
+  if (!me) return null;
+  return (
+    <div>
+      <div className="mb-4 flex items-center gap-4">
+        <XpIcon className="h-12 w-12 shrink-0" />
+        <div>
+          <h3 className="text-xl font-extrabold text-strong">{me.xp_total} XP</h3>
+          <p className="text-sm text-muted">Total experience earned</p>
+        </div>
+      </div>
+      <p className="mb-2 text-sm font-bold text-strong">
+        Daily goal: {Math.min(me.daily_xp, me.daily_goal_xp)} / {me.daily_goal_xp} XP
+      </p>
+      <ProgressBar value={me.daily_xp / me.daily_goal_xp} color="bee" />
     </div>
   );
 }

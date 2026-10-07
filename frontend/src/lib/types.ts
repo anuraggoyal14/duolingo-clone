@@ -22,6 +22,9 @@ export interface Me {
   streak: number;
   streak_extended_today: boolean;
   longest_streak: number;
+  streak_freezes: number;
+  max_streak_freezes: number;
+  streak_freeze_cost: number;
   daily_goal_xp: number;
   daily_xp: number;
   today: string;
@@ -39,6 +42,7 @@ export interface Skill {
   lessons_completed: number;
   total_lessons: number;
   next_lesson_id: number | null;
+  legendary: boolean;
 }
 
 export interface Unit {
@@ -103,9 +107,11 @@ export type Exercise =
 
 export type AnswerValue = number | string | string[] | string[][];
 
+export type AttemptKind = "lesson" | "practice" | "legendary";
+
 export interface Attempt {
   attempt_id: string;
-  kind: "lesson" | "practice";
+  kind: AttemptKind;
   meta: {
     lesson_id: number | null;
     skill_id: number | null;
@@ -118,6 +124,8 @@ export interface Attempt {
   hearts: number;
   max_hearts: number;
   hearts_enabled: boolean;
+  time_limit_seconds: number | null;
+  max_mistakes: number | null;
 }
 
 export interface AnswerResult {
@@ -126,9 +134,11 @@ export interface AnswerResult {
   note: string | null;
   hearts: number;
   remaining: number;
+  attempt_status: "in_progress" | "completed" | "failed";
 }
 
 export interface Completion {
+  kind: AttemptKind;
   xp_earned: number;
   base_xp: number;
   bonus_xp: number;
@@ -137,10 +147,12 @@ export interface Completion {
   perfect: boolean;
   streak: number;
   streak_extended: boolean;
+  streak_freezes_used: number;
   daily_xp: number;
   daily_goal_xp: number;
   daily_goal_reached_now: boolean;
   skill_completed: boolean;
+  legendary: boolean;
   skill_title: string | null;
   gems_earned: number;
   hearts: number;
@@ -188,4 +200,19 @@ export interface Profile {
   league: string;
   xp_last_7_days: { date: string; xp: number }[];
   achievements: Achievement[];
+}
+
+export interface Quest {
+  code: string;
+  title: string;
+  progress: number;
+  target: number;
+  completed: boolean;
+  claimed: boolean;
+  reward_gems: number;
+}
+
+export interface Quests {
+  quests: Quest[];
+  gems: number;
 }
