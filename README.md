@@ -1,5 +1,8 @@
 # Duolingo Clone
 
+**Live demo:** https://duolingo-clone-murex.vercel.app · **API:** https://duolingo-clone-api-lmzz.onrender.com/docs
+(The free-tier backend sleeps when idle, so the first load can take up to a minute.)
+
 A functional clone of the Duolingo web app. It covers the learning path, a lesson player with five interactive exercise types, and the full gamification loop: XP, streaks, hearts, gems, daily goal, leagues and achievements. It ships with a seeded Spanish course.
 
 | | |
