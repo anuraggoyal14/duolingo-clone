@@ -10,7 +10,7 @@ A functional clone of the Duolingo web app. It covers the learning path, a lesso
 | **Frontend** | Next.js 15 (App Router) · TypeScript · Tailwind CSS v4 |
 | **Backend** | Python 3.12 · FastAPI · SQLAlchemy 2 · Pydantic 2 |
 | **Database** | SQLite (custom schema, auto-seeded on first start) |
-| **Tests** | pytest (22 unit + API tests) |
+| **Tests** | pytest (31 unit + API tests) |
 
 ---
 
@@ -20,7 +20,8 @@ A functional clone of the Duolingo web app. It covers the learning path, a lesso
 - Winding path of units and skills.
 - Each skill is shown as completed (crown), active (progress ring with a bouncing START/CONTINUE bubble) or locked.
 - Sticky unit banners with a guidebook.
-- Node popovers with START / PRACTICE / LOCKED actions.
+- Node popovers with START / PRACTICE / LEGENDARY / LOCKED actions.
+- Top bar with course flag, **streak, XP, gems and hearts**, each with a dropdown.
 
 **Lesson player**
 - Five exercise types:
@@ -34,6 +35,12 @@ A functional clone of the Duolingo web app. It covers the learning path, a lesso
 - Mistakes are re-queued at the end of the lesson, as in Duolingo.
 - Typed answers tolerate missing accents and single typos, and say so ("You have a typo").
 - Text-to-speech audio for Spanish, plus synthesized correct/wrong sounds.
+- Combo messages for answers in a row ("🔥 5 in a row!").
+
+**Legendary challenge** (timed mode)
+- Available on any completed skill: 10 exercises from that skill, with a **3-minute timer** and **2 allowed mistakes** (the third ends the run). No hearts are used.
+- Success gives 40 XP, turns the skill **gold** on the path, and unlocks the "Legendary" achievement.
+- The time limit and the mistake allowance are enforced by the server, not just the UI.
 
 **Hearts**
 - Lose one per wrong answer.
@@ -46,8 +53,10 @@ A functional clone of the Duolingo web app. It covers the learning path, a lesso
 **Rewards**
 - XP: 10 per lesson, plus 5 for a perfect lesson.
 - Gems: 20 for finishing a skill.
-- Daily goal (10/20/30/50 XP) with a progress card.
+- Daily goal (10/20/30/50 XP).
+- **Daily Quests:** earn your daily XP goal, complete 2 lessons, and get 100% in a lesson. Each completed quest has a chest worth 15 gems. Quests reset at local midnight.
 - Streak flame that lights once you've practised today.
+- **Streak Freeze** (200 gems, up to 2 equipped): each one protects the streak for one missed day.
 - "Lesson complete" screen with confetti and stat cards, then a "day streak!" screen.
 - Achievements with toasts and progress bars.
 
@@ -55,8 +64,8 @@ A functional clone of the Duolingo web app. It covers the learning path, a lesso
 
 **Other pages**
 - **Profile:** stats, 7-day XP chart, achievements.
-- **Shop:** heart refill, practice, Coming Soon power-ups.
-- **Quests:** daily goal quest.
+- **Shop:** heart refill, practice to earn hearts, Streak Freeze, Super (Coming Soon).
+- **Quests:** today's three quests with claimable chests (also shown in the right rail).
 - **Settings:** name, daily goal, timezone, sound, light/dark/system theme.
 - **Developer tools:** simulate the next day, skip a day, reset demo data.
 
@@ -158,6 +167,8 @@ erDiagram
     users ||--o{ xp_events : earns
     users ||--o{ user_achievements : unlocks
     achievements ||--o{ user_achievements : "unlocked as"
+    skills ||--o{ lesson_attempts : "legendary on"
+    users ||--o{ daily_quest_claims : claims
 
     courses {
         int id PK
@@ -205,6 +216,7 @@ erDiagram
         int streak_count
         int longest_streak
         date last_streak_date
+        int streak_freezes
         int daily_goal_xp
         bool is_demo_peer
     }
@@ -214,11 +226,13 @@ erDiagram
         int skill_id FK
         int lessons_completed
         datetime completed_at
+        datetime legendary_at
     }
     lesson_attempts {
         string id PK
         int user_id FK
         int lesson_id FK
+        int skill_id FK
         string kind
         json exercise_ids
         json correct_ids
@@ -226,6 +240,7 @@ erDiagram
         string status
         int xp_awarded
         json result
+        datetime deadline_at
     }
     xp_events {
         int id PK
@@ -248,6 +263,13 @@ erDiagram
         int achievement_id FK
         datetime unlocked_at
     }
+    daily_quest_claims {
+        int id PK
+        int user_id FK
+        string quest_code
+        date day
+        int gems_awarded
+    }
     app_settings {
         string key PK
         string value
@@ -263,12 +285,16 @@ Design notes:
 - **`xp_events` is an append-only ledger.**
   - The daily goal, the weekly leaderboard and the 7-day chart are all aggregations over it, indexed on `(user_id, activity_date)`.
   - `users.xp_total` is a denormalized running total for cheap reads.
-- **`lesson_attempts`** tracks one run through a lesson or practice session.
-  - It records the exercises served, which ones were answered correctly, mistakes and status.
+- **`lesson_attempts`** tracks one run through a lesson, a practice session or a Legendary challenge (`kind`).
+  - It records the exercises served, which ones were answered correctly, mistakes and status (`in_progress`, `completed` or `failed`).
+  - Legendary runs also store `skill_id` and a server-side `deadline_at`.
   - It caches the completion `result`, so completion is idempotent.
   - It is also the source of "lessons completed" and "perfect lessons" for achievements.
-- **`user_skill_progress`** has one row per (user, skill) and stores `lessons_completed`. Replaying an earlier lesson doesn't advance it twice.
-- **Streak state lives on `users`** (`streak_count`, `last_streak_date`). A streak is "alive" while `last_streak_date >= today - 1`; the API returns 0 once a day has been missed.
+- **`user_skill_progress`** has one row per (user, skill) and stores `lessons_completed`. Replaying an earlier lesson doesn't advance it twice. `legendary_at` marks a gold skill.
+- **Streak state lives on `users`** (`streak_count`, `last_streak_date`, `streak_freezes`).
+  - A streak is "alive" while the number of missed days is no more than the equipped freezes.
+  - Freezes are used up when the learner practises again.
+- **Daily quests** are computed from data that already exists (the XP ledger and lesson attempts), so `daily_quest_claims` only stores which chests were opened, with `UNIQUE(user_id, quest_code, day)`.
 - **Integrity:** CHECK constraints stop hearts and gems going negative, and SQLite foreign keys are enforced through `PRAGMA foreign_keys=ON`.
 - **Migrations:** for this assignment, tables are created with `create_all` on startup. A real deployment would add Alembic migrations.
 
@@ -276,7 +302,7 @@ Design notes:
 
 ## API overview
 
-Base path `/api`. Interactive docs are at `http://localhost:8000/docs`. All errors use one envelope, `{"error": {"code", "message"}}`, with stable codes such as `out_of_hearts`, `lesson_locked`, `lesson_incomplete`, `insufficient_gems` and `validation_error`.
+Base path `/api`. Interactive docs are at `http://localhost:8000/docs`. All errors use one envelope, `{"error": {"code", "message"}}`, with stable codes such as `out_of_hearts`, `lesson_locked`, `lesson_incomplete`, `time_up`, `insufficient_gems`, `already_claimed` and `validation_error`.
 
 | Method | Endpoint | Description |
 |---|---|---|
@@ -286,10 +312,14 @@ Base path `/api`. Interactive docs are at `http://localhost:8000/docs`. All erro
 | GET | `/course` | Learning path: units → skills with status, progress and `next_lesson_id` |
 | POST | `/lessons/{id}/attempts` | Start a lesson. Returns exercises **without answers**. 403 if locked or out of hearts |
 | POST | `/practice/attempts` | Start a practice session from completed lessons (no heart cost, +1 heart on completion) |
-| POST | `/attempts/{id}/answers` | `{exercise_id, answer}` → `{correct, solution, note, hearts, remaining}` |
+| POST | `/skills/{id}/legendary` | Start a timed Legendary challenge on a completed skill |
+| POST | `/attempts/{id}/answers` | `{exercise_id, answer}` → `{correct, solution, note, hearts, remaining, attempt_status}` |
 | POST | `/attempts/{id}/complete` | Award XP / streak / skill progress / gems / achievements. Idempotent |
 | GET | `/leaderboard` | Weekly league standings (Monday–Sunday in the learner's timezone) |
 | POST | `/shop/refill-hearts` | Spend 350 mock gems to refill hearts |
+| POST | `/shop/streak-freeze` | Spend 200 mock gems to equip a streak freeze (max 2) |
+| GET | `/quests` | Today's daily quests with progress and claim state |
+| POST | `/quests/{code}/claim` | Open a completed quest's chest (+15 gems, once per day) |
 | POST | `/dev/advance-day` | Simulate days passing (`{days}`). Only when `ENABLE_DEV_TOOLS=true` |
 | POST | `/dev/reset` | Wipe progress and re-seed. Only when `ENABLE_DEV_TOOLS=true` |
 | GET | `/health` | Health check |
@@ -331,7 +361,10 @@ No secrets are required.
 - **Backend → Render.** Create a Blueprint from this repo. `render.yaml` defines the service: root `backend/`, start command `uvicorn app.main:app --host 0.0.0.0 --port $PORT`, health check `/api/health`. A `backend/Dockerfile` is also included for Railway, Fly.io or any Docker host; mount a volume at `/data` to persist SQLite.
 - **Frontend → Vercel.** Import the repo, set **Root Directory** to `frontend`, and set the environment variable `BACKEND_URL=https://<your-backend>.onrender.com`.
 
-> **Note on free hosting:** Render's free tier has an ephemeral filesystem and sleeps after ~15 minutes idle. Progress persists in SQLite while the instance runs, but resets to the seeded demo state after a restart or redeploy. Use a persistent disk or volume for durable storage. The first request after sleeping can take up to about a minute; the frontend retries and shows a "waking up" state.
+> **Note on free hosting:** Render's free tier has an ephemeral filesystem and sleeps after ~15 minutes idle. Progress persists in SQLite while the instance runs, but resets to the seeded demo state after a restart or redeploy.
+> - The GitHub Actions workflow `.github/workflows/keep-alive.yml` pings the API every 10 minutes, so the demo stays awake and progress persists between visits.
+> - Use a persistent disk or volume for truly durable storage.
+> - If the instance does sleep, the first request can take up to about a minute; the frontend retries and shows a "waking up" state.
 
 ---
 
@@ -343,7 +376,9 @@ No secrets are required.
 - **Gamification constants** (`services/gamification.py`):
   - max hearts 5; 1 heart regenerates every 30 min
   - refill costs 350 gems
-  - 10 XP per lesson, +5 for a perfect lesson, 10 XP per practice
+  - 10 XP per lesson, +5 for a perfect lesson, 10 XP per practice, 40 XP per Legendary
+  - streak freeze costs 200 gems (max 2 equipped); each quest chest gives 15 gems
+  - Legendary: 10 exercises, 3 minutes, the run fails on the 3rd mistake
 - **Match pairs:** mismatched taps shake but don't cost hearts (current Duolingo behavior). The pairs are sent to the client because they are the exercise; the final submission is still verified by the server.
 - **Audio** uses the browser's Speech Synthesis API (no audio files). Speaking exercises are out of scope.
 - **The visual design** recreates Duolingo's look (palette, 3D buttons, feedback bar, path, layout) using the Nunito font, hand-drawn SVG icons and an original owl mascot. No Duolingo assets are copied.
