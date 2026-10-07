@@ -12,7 +12,13 @@ router = APIRouter(tags=["lessons"])
 
 def _attempt_out(ctx: RequestContext, attempt: LessonAttempt) -> AttemptOut:
     lesson = attempt.lesson
-    if lesson is not None:
+    if attempt.kind == "legendary":
+        skill = attempt.skill
+        meta = LessonMeta(
+            lesson_id=None, skill_id=skill.id, skill_title=skill.title,
+            unit_title=skill.unit.title, lesson_number=None, lessons_in_skill=None,
+        )
+    elif lesson is not None:
         skill = lesson.skill
         meta = LessonMeta(
             lesson_id=lesson.id,
@@ -35,6 +41,10 @@ def _attempt_out(ctx: RequestContext, attempt: LessonAttempt) -> AttemptOut:
         hearts=ctx.user.hearts,
         max_hearts=game.MAX_HEARTS,
         hearts_enabled=attempt.kind == "lesson",
+        time_limit_seconds=(
+            int((attempt.deadline_at - attempt.started_at).total_seconds()) if attempt.deadline_at else None
+        ),
+        max_mistakes=lesson_flow.LEGENDARY_MAX_MISTAKES if attempt.kind == "legendary" else None,
     )
 
 
@@ -48,6 +58,14 @@ def start_lesson(lesson_id: int, ctx: RequestContext = Depends(get_context)):
 @router.post("/practice/attempts", response_model=AttemptOut, status_code=201)
 def start_practice(ctx: RequestContext = Depends(get_context)):
     attempt = lesson_flow.start_practice(ctx.db, ctx.user, ctx.now)
+    ctx.db.commit()
+    return _attempt_out(ctx, attempt)
+
+
+@router.post("/skills/{skill_id}/legendary", response_model=AttemptOut, status_code=201)
+def start_legendary(skill_id: int, ctx: RequestContext = Depends(get_context)):
+    """Start a timed Legendary challenge on a completed skill."""
+    attempt = lesson_flow.start_legendary(ctx.db, ctx.user, skill_id, ctx.now)
     ctx.db.commit()
     return _attempt_out(ctx, attempt)
 

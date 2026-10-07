@@ -40,6 +40,7 @@ ACHIEVEMENTS = [
     ("sharpshooter", "Sharpshooter", "Complete 3 lessons without a mistake", "target", "perfect", 3),
     ("conqueror", "Conqueror", "Complete 3 skills", "crown", "skills", 3),
     ("dedicated", "Dedicated", "Complete 15 lessons", "medal", "lessons", 15),
+    ("legendary", "Legendary", "Make a skill Legendary", "trophy", "legendary", 1),
 ]
 
 # Fictional leaderboard peers: (username, display name, avatar color, weekly XP)
@@ -145,7 +146,7 @@ def seed_learner(db: Session, course: Course, now: datetime, today: date) -> Use
     """A learner mid-way through Unit 1 with a streak that can be extended today."""
     learner = _new_user(
         settings.default_username, "Alex", "green", now,
-        gems=500, hearts=4, daily_goal_xp=20,
+        gems=500, hearts=4, daily_goal_xp=20, streak_freezes=1,
         streak_count=LEARNER_STREAK_DAYS, longest_streak=LEARNER_STREAK_DAYS,
         last_streak_date=today - timedelta(days=1),
     )

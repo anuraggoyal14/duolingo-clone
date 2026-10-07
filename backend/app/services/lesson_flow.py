@@ -1,24 +1,37 @@
 """The lesson loop: start an attempt -> answer exercises -> complete and get rewarded.
 
+Three kinds of attempt share this flow:
+- lesson:    the next lesson of an unlocked skill; wrong answers cost hearts.
+- practice:  review of completed lessons; never costs hearts, restores one on completion.
+- legendary: a timed challenge on a completed skill; no hearts, but the run fails after
+             LEGENDARY_MAX_MISTAKES mistakes or when the time limit passes. Success turns the
+             skill gold.
+
 Every state change is validated server-side, so a client can't skip exercises, skip a locked
-skill or claim XP twice.
+skill, beat the clock or claim XP twice.
 """
 
 import random
 import uuid
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import Any
 
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
 from app.errors import AppError, NotFound
-from app.models import Exercise, Lesson, LessonAttempt, User, UserSkillProgress
+from app.models import Exercise, Lesson, LessonAttempt, Skill, User, UserSkillProgress
 from app.services import gamification as game
 from app.services.grading import InvalidAnswer, grade
 from app.services.progress import skill_state
 
 PRACTICE_SIZE = 8
+LEGENDARY_SIZE = 10
+LEGENDARY_TIME_LIMIT = timedelta(minutes=3)
+LEGENDARY_MAX_MISTAKES = 3  # the third mistake ends the run
+LEGENDARY_XP = 40
+# Allowance for network latency between the client's timer hitting zero and the request.
+DEADLINE_GRACE = timedelta(seconds=5)
 
 
 def _require_hearts(user: User) -> None:
@@ -80,6 +93,48 @@ def start_practice(db: Session, user: User, now: datetime) -> LessonAttempt:
     return attempt
 
 
+def start_legendary(db: Session, user: User, skill_id: int, now: datetime) -> LessonAttempt:
+    """Timed challenge over a completed skill's exercises. Free to start (gems are mocked)."""
+    skill = db.get(Skill, skill_id)
+    if skill is None:
+        raise NotFound("Skill")
+    progress = db.scalar(
+        select(UserSkillProgress).where(
+            UserSkillProgress.user_id == user.id, UserSkillProgress.skill_id == skill_id
+        )
+    )
+    if progress is None or progress.completed_at is None:
+        raise AppError(403, "skill_not_completed", "Complete this skill before going Legendary.")
+    if progress.legendary_at is not None:
+        raise AppError(409, "already_legendary", "This skill is already Legendary.")
+
+    pool = [e.id for lesson in skill.lessons for e in lesson.exercises]
+    attempt = LessonAttempt(
+        id=str(uuid.uuid4()),
+        user_id=user.id,
+        skill_id=skill.id,
+        kind="legendary",
+        exercise_ids=random.sample(pool, k=min(LEGENDARY_SIZE, len(pool))),
+        correct_ids=[],
+        started_at=now,
+        deadline_at=now + LEGENDARY_TIME_LIMIT,
+    )
+    db.add(attempt)
+    return attempt
+
+
+def _fail(attempt: LessonAttempt, now: datetime) -> None:
+    attempt.status = "failed"
+    attempt.finished_at = now
+
+
+def _check_deadline(db: Session, attempt: LessonAttempt, now: datetime) -> None:
+    if attempt.deadline_at is not None and now > attempt.deadline_at + DEADLINE_GRACE:
+        _fail(attempt, now)
+        db.commit()  # persist the failure even though the request ends with an error
+        raise AppError(409, "time_up", "Time's up! The challenge has ended.")
+
+
 def attempt_exercises(db: Session, attempt: LessonAttempt) -> list[Exercise]:
     by_id = {e.id: e for e in db.scalars(select(Exercise).where(Exercise.id.in_(attempt.exercise_ids)))}
     return [by_id[i] for i in attempt.exercise_ids if i in by_id]
@@ -97,6 +152,7 @@ def submit_answer(
 ) -> dict[str, Any]:
     if attempt.status != "in_progress":
         raise AppError(409, "attempt_finished", "This lesson is already finished.")
+    _check_deadline(db, attempt, now)
     if exercise_id not in attempt.exercise_ids:
         raise AppError(400, "exercise_not_in_attempt", "This exercise is not part of the lesson.")
     exercise = db.get(Exercise, exercise_id)
@@ -118,6 +174,8 @@ def submit_answer(
             attempt.mistakes += 1
             if attempt.kind == "lesson":
                 game.lose_heart(user, now)
+            elif attempt.kind == "legendary" and attempt.mistakes >= LEGENDARY_MAX_MISTAKES:
+                _fail(attempt, now)
 
     return {
         "correct": result.correct,
@@ -125,6 +183,7 @@ def submit_answer(
         "note": result.note,
         "hearts": user.hearts,
         "remaining": len(set(attempt.exercise_ids) - set(attempt.correct_ids)),
+        "attempt_status": attempt.status,
     }
 
 
@@ -133,6 +192,9 @@ def complete_attempt(
 ) -> dict[str, Any]:
     if attempt.status == "completed":
         return attempt.result  # idempotent: rewards are only granted once
+    if attempt.status == "failed":
+        raise AppError(409, "attempt_failed", "This challenge has ended. Try again!")
+    _check_deadline(db, attempt, now)
     missing = set(attempt.exercise_ids) - set(attempt.correct_ids)
     if missing:
         raise AppError(409, "lesson_incomplete", f"{len(missing)} exercise(s) still need a correct answer.")
@@ -159,17 +221,21 @@ def complete_attempt(
     if attempt.kind == "practice":
         base_xp, bonus_xp = game.PRACTICE_XP, 0
         game.gain_heart(user, now)
+    elif attempt.kind == "legendary":
+        base_xp, bonus_xp = LEGENDARY_XP, 0
     else:
         base_xp = game.LESSON_XP
         bonus_xp = game.PERFECT_LESSON_BONUS_XP if perfect else 0
 
     xp_earned = base_xp + bonus_xp
     game.award_xp(db, user, xp_earned, attempt.kind, today, now)
-    streak_extended = game.register_activity(user, today)
+    streak_extended, freezes_used = game.register_activity(user, today)
 
     skill_completed, skill_title, gems_earned = False, None, 0
     if attempt.kind == "lesson":
         skill_completed, skill_title, gems_earned = _advance_skill(db, user, attempt, now)
+    elif attempt.kind == "legendary":
+        skill_title = _make_legendary(db, user, attempt, now)
 
     attempt.status = "completed"
     attempt.finished_at = now
@@ -178,6 +244,7 @@ def complete_attempt(
 
     daily_xp = xp_before_today + xp_earned
     attempt.result = {
+        "kind": attempt.kind,
         "xp_earned": xp_earned,
         "base_xp": base_xp,
         "bonus_xp": bonus_xp,
@@ -186,10 +253,12 @@ def complete_attempt(
         "perfect": perfect,
         "streak": user.streak_count,
         "streak_extended": streak_extended,
+        "streak_freezes_used": freezes_used,
         "daily_xp": daily_xp,
         "daily_goal_xp": user.daily_goal_xp,
         "daily_goal_reached_now": xp_before_today < user.daily_goal_xp <= daily_xp,
         "skill_completed": skill_completed,
+        "legendary": attempt.kind == "legendary",
         "skill_title": skill_title,
         "gems_earned": gems_earned,
         "hearts": user.hearts,
@@ -225,3 +294,13 @@ def _advance_skill(
         user.gems += game.SKILL_COMPLETE_GEMS
         return True, skill.title, game.SKILL_COMPLETE_GEMS
     return False, skill.title, 0
+
+
+def _make_legendary(db: Session, user: User, attempt: LessonAttempt, now: datetime) -> str:
+    progress = db.scalar(
+        select(UserSkillProgress).where(
+            UserSkillProgress.user_id == user.id, UserSkillProgress.skill_id == attempt.skill_id
+        )
+    )
+    progress.legendary_at = now
+    return attempt.skill.title

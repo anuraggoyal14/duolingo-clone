@@ -21,3 +21,17 @@ def refill_hearts(ctx: RequestContext = Depends(get_context)):
     game.refill_hearts(user, ctx.now)
     ctx.db.commit()
     return build_me(ctx)
+
+
+@router.post("/shop/streak-freeze", response_model=MeOut)
+def buy_streak_freeze(ctx: RequestContext = Depends(get_context)):
+    """Mocked purchase: equip a streak freeze that protects the streak for one missed day."""
+    user = ctx.user
+    if user.streak_freezes >= game.MAX_STREAK_FREEZES:
+        raise AppError(409, "freezes_full", f"You can equip at most {game.MAX_STREAK_FREEZES} streak freezes.")
+    if user.gems < game.STREAK_FREEZE_COST_GEMS:
+        raise AppError(402, "insufficient_gems", "You don't have enough gems.")
+    user.gems -= game.STREAK_FREEZE_COST_GEMS
+    user.streak_freezes += 1
+    ctx.db.commit()
+    return build_me(ctx)

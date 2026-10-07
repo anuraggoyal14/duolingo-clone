@@ -1,7 +1,7 @@
 """SQLAlchemy ORM models.
 
 Content hierarchy:  Course -> Unit -> Skill -> Lesson -> Exercise
-Learner state:      User, UserSkillProgress, LessonAttempt, XpEvent, UserAchievement
+Learner state:      User, UserSkillProgress, LessonAttempt, XpEvent, UserAchievement, DailyQuestClaim
 Catalog / misc:     Achievement, AppSetting
 
 All timestamps are stored as naive UTC datetimes. Calendar dates used for streaks and
@@ -120,6 +120,7 @@ class User(Base):
     __table_args__ = (
         CheckConstraint("hearts >= 0", name="ck_user_hearts_non_negative"),
         CheckConstraint("gems >= 0", name="ck_user_gems_non_negative"),
+        CheckConstraint("streak_freezes BETWEEN 0 AND 2", name="ck_user_streak_freezes"),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -138,6 +139,8 @@ class User(Base):
     streak_count: Mapped[int] = mapped_column(Integer, default=0)
     longest_streak: Mapped[int] = mapped_column(Integer, default=0)
     last_streak_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    # Equipped streak freezes: each one protects the streak for one missed day.
+    streak_freezes: Mapped[int] = mapped_column(Integer, default=0)
     daily_goal_xp: Mapped[int] = mapped_column(Integer, default=20)
 
     created_at: Mapped[datetime] = mapped_column(DateTime)
@@ -156,19 +159,21 @@ class UserSkillProgress(Base):
     skill_id: Mapped[int] = mapped_column(ForeignKey("skills.id", ondelete="CASCADE"), index=True)
     lessons_completed: Mapped[int] = mapped_column(Integer, default=0)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    legendary_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)  # gold skill
 
     user: Mapped[User] = relationship(back_populates="skill_progress")
     skill: Mapped[Skill] = relationship()
 
 
 class LessonAttempt(Base):
-    """One run through a lesson (or a practice session). Tracks which exercises have been
-    answered correctly so the server can verify completion and award XP exactly once."""
+    """One run through a lesson, a practice session or a timed Legendary challenge. Tracks
+    which exercises have been answered correctly so the server can verify completion and
+    award XP exactly once."""
 
     __tablename__ = "lesson_attempts"
     __table_args__ = (
-        CheckConstraint("kind IN ('lesson', 'practice')", name="ck_attempt_kind"),
-        CheckConstraint("status IN ('in_progress', 'completed')", name="ck_attempt_status"),
+        CheckConstraint("kind IN ('lesson', 'practice', 'legendary')", name="ck_attempt_kind"),
+        CheckConstraint("status IN ('in_progress', 'completed', 'failed')", name="ck_attempt_status"),
         Index("ix_attempt_user_status", "user_id", "status"),
     )
 
@@ -176,7 +181,10 @@ class LessonAttempt(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
     lesson_id: Mapped[int | None] = mapped_column(
         ForeignKey("lessons.id", ondelete="CASCADE"), nullable=True
-    )  # NULL for practice sessions
+    )  # NULL for practice and legendary sessions
+    skill_id: Mapped[int | None] = mapped_column(
+        ForeignKey("skills.id", ondelete="CASCADE"), nullable=True
+    )  # set for legendary challenges
     kind: Mapped[str] = mapped_column(String(16), default="lesson")
     exercise_ids: Mapped[list[int]] = mapped_column(JSON)
     correct_ids: Mapped[list[int]] = mapped_column(JSON, default=list)
@@ -185,9 +193,11 @@ class LessonAttempt(Base):
     xp_awarded: Mapped[int] = mapped_column(Integer, default=0)
     result: Mapped[dict | None] = mapped_column(JSON, nullable=True)  # cached completion summary
     started_at: Mapped[datetime] = mapped_column(DateTime)
+    deadline_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)  # timed modes
     finished_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     lesson: Mapped[Lesson | None] = relationship()
+    skill: Mapped[Skill | None] = relationship()
 
 
 class XpEvent(Base):
@@ -213,7 +223,7 @@ class Achievement(Base):
     title: Mapped[str] = mapped_column(String(64))
     description: Mapped[str] = mapped_column(Text)
     icon: Mapped[str] = mapped_column(String(32))
-    metric: Mapped[str] = mapped_column(String(32))  # streak | xp | lessons | perfect | skills
+    metric: Mapped[str] = mapped_column(String(32))  # streak | xp | lessons | perfect | skills | legendary
     threshold: Mapped[int] = mapped_column(Integer)
 
 
@@ -227,6 +237,21 @@ class UserAchievement(Base):
     unlocked_at: Mapped[datetime] = mapped_column(DateTime)
 
     achievement: Mapped[Achievement] = relationship()
+
+
+class DailyQuestClaim(Base):
+    """A claimed daily-quest chest. Quest progress itself is derived from the XP ledger and
+    lesson attempts; only the claim (reward granted) needs to be stored."""
+
+    __tablename__ = "daily_quest_claims"
+    __table_args__ = (UniqueConstraint("user_id", "quest_code", "day"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    quest_code: Mapped[str] = mapped_column(String(32))
+    day: Mapped[date] = mapped_column(Date)  # learner's local date
+    gems_awarded: Mapped[int] = mapped_column(Integer)
+    claimed_at: Mapped[datetime] = mapped_column(DateTime)
 
 
 class AppSetting(Base):

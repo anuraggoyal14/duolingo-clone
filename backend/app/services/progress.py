@@ -19,6 +19,7 @@ class SkillState:
     status: str  # completed | active | locked
     lessons_completed: int
     total_lessons: int
+    legendary: bool = False
 
     @property
     def next_lesson_id(self) -> int | None:
@@ -52,7 +53,8 @@ def compute_path(db: Session, user: User, course: Course) -> list[SkillState]:
     previous_completed = True
     for unit in course.units:
         for skill in unit.skills:
-            done = progress[skill.id].lessons_completed if skill.id in progress else 0
+            row = progress.get(skill.id)
+            done = row.lessons_completed if row else 0
             total = len(skill.lessons)
             if done >= total:
                 status = "completed"
@@ -61,7 +63,8 @@ def compute_path(db: Session, user: User, course: Course) -> list[SkillState]:
             else:
                 status = "locked"
             previous_completed = status == "completed"
-            states.append(SkillState(skill, status, min(done, total), total))
+            legendary = bool(row and row.legendary_at)
+            states.append(SkillState(skill, status, min(done, total), total, legendary))
     return states
 
 

@@ -29,6 +29,7 @@ def get_course_path(ctx: RequestContext = Depends(get_context)):
                     lessons_completed=states[skill.id].lessons_completed,
                     total_lessons=states[skill.id].total_lessons,
                     next_lesson_id=states[skill.id].next_lesson_id,
+                    legendary=states[skill.id].legendary,
                 )
                 for skill in unit.skills
             ],

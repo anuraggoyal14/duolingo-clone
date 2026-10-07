@@ -26,6 +26,8 @@ PERFECT_LESSON_BONUS_XP = 5
 PRACTICE_XP = 10
 SKILL_COMPLETE_GEMS = 20
 DAILY_GOAL_OPTIONS = (10, 20, 30, 50)
+STREAK_FREEZE_COST_GEMS = 200
+MAX_STREAK_FREEZES = 2
 
 
 # --------------------------------------------------------------------------- hearts
@@ -80,11 +82,19 @@ def refill_hearts(user: User, now: datetime) -> None:
 # --------------------------------------------------------------------------- streak
 
 
-def current_streak(user: User, today: date) -> int:
-    """A streak survives until the end of the day after the last activity."""
+def missed_days(user: User, today: date) -> int:
+    """Whole days skipped since the last activity (0 if active today or yesterday)."""
     if user.last_streak_date is None:
         return 0
-    if user.last_streak_date >= today - timedelta(days=1):
+    return max(0, (today - user.last_streak_date).days - 1)
+
+
+def current_streak(user: User, today: date) -> int:
+    """A streak survives until the end of the day after the last activity, plus one extra
+    day per equipped streak freeze."""
+    if user.last_streak_date is None:
+        return 0
+    if missed_days(user, today) <= user.streak_freezes:
         return user.streak_count
     return 0
 
@@ -93,19 +103,26 @@ def extended_today(user: User, today: date) -> bool:
     return user.last_streak_date == today
 
 
-def register_activity(user: User, today: date) -> bool:
-    """Record a day of activity. Returns True if this call extended the streak."""
+def register_activity(user: User, today: date) -> tuple[bool, int]:
+    """Record a day of activity.
+
+    Returns (extended, freezes_used): whether this call extended the streak, and how many
+    streak freezes were consumed to bridge missed days."""
     # ">=" also covers a learner moving to an earlier timezone after already practising
     # "tomorrow" in the old one: that must not reset the streak.
     if user.last_streak_date is not None and user.last_streak_date >= today:
-        return False
-    if user.last_streak_date == today - timedelta(days=1):
+        return False, 0
+    missed = missed_days(user, today)
+    freezes_used = 0
+    if user.last_streak_date is not None and missed <= user.streak_freezes:
+        freezes_used = missed
+        user.streak_freezes -= missed
         user.streak_count += 1
     else:
         user.streak_count = 1
     user.last_streak_date = today
     user.longest_streak = max(user.longest_streak, user.streak_count)
-    return True
+    return True, freezes_used
 
 
 # --------------------------------------------------------------------------- XP
@@ -153,6 +170,11 @@ def achievement_metrics(db: Session, user: User) -> dict[str, int]:
             LessonAttempt.mistakes == 0,
         )
     )
+    legendary_done = db.scalar(
+        select(func.count()).where(
+            UserSkillProgress.user_id == user.id, UserSkillProgress.legendary_at.is_not(None)
+        )
+    )
     skills_done = db.scalar(
         select(func.count()).where(
             UserSkillProgress.user_id == user.id, UserSkillProgress.completed_at.is_not(None)
@@ -164,6 +186,7 @@ def achievement_metrics(db: Session, user: User) -> dict[str, int]:
         "lessons": int(lessons_done or 0),
         "perfect": int(perfect_lessons or 0),
         "skills": int(skills_done or 0),
+        "legendary": int(legendary_done or 0),
     }
 
 

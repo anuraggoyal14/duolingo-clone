@@ -15,7 +15,7 @@ def make_exercise(kind: str, **content) -> Exercise:
 
 def make_user(**kwargs) -> User:
     defaults = dict(hearts=5, hearts_updated_at=datetime(2026, 1, 1), streak_count=0,
-                    longest_streak=0, last_streak_date=None)
+                    longest_streak=0, last_streak_date=None, streak_freezes=0)
     return User(**{**defaults, **kwargs})
 
 
@@ -102,8 +102,8 @@ def test_hearts_never_go_negative():
 def test_streak_increments_once_per_day_and_resets_after_a_gap():
     user = make_user()
     day = date(2026, 3, 10)
-    assert game.register_activity(user, day) is True
-    assert game.register_activity(user, day) is False  # second lesson same day
+    assert game.register_activity(user, day) == (True, 0)
+    assert game.register_activity(user, day) == (False, 0)  # second lesson same day
     assert user.streak_count == 1
     game.register_activity(user, day + timedelta(days=1))
     assert user.streak_count == 2 and user.longest_streak == 2
@@ -119,5 +119,21 @@ def test_streak_increments_once_per_day_and_resets_after_a_gap():
 def test_moving_to_an_earlier_timezone_does_not_reset_the_streak():
     user = make_user(streak_count=5, longest_streak=5, last_streak_date=date(2026, 10, 9))
     # Already practised on the 9th in the old timezone; the new timezone says it's the 8th.
-    assert game.register_activity(user, date(2026, 10, 8)) is False
+    assert game.register_activity(user, date(2026, 10, 8)) == (False, 0)
     assert user.streak_count == 5 and user.last_streak_date == date(2026, 10, 9)
+
+
+def test_streak_freeze_bridges_one_missed_day():
+    user = make_user(streak_count=6, longest_streak=6, last_streak_date=date(2026, 3, 10), streak_freezes=1)
+    # Missed the 11th: the freeze keeps the streak alive on the 12th...
+    assert game.current_streak(user, date(2026, 3, 12)) == 6
+    # ...and is consumed when the learner practises again.
+    assert game.register_activity(user, date(2026, 3, 12)) == (True, 1)
+    assert user.streak_count == 7 and user.streak_freezes == 0
+
+
+def test_streak_freeze_cannot_cover_more_missed_days_than_equipped():
+    user = make_user(streak_count=6, longest_streak=6, last_streak_date=date(2026, 3, 10), streak_freezes=1)
+    assert game.current_streak(user, date(2026, 3, 13)) == 0  # two missed days, one freeze
+    assert game.register_activity(user, date(2026, 3, 13)) == (True, 0)
+    assert user.streak_count == 1 and user.streak_freezes == 1  # freeze not wasted

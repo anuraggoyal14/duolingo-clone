@@ -30,6 +30,9 @@ class MeOut(BaseModel):
     streak: int
     streak_extended_today: bool
     longest_streak: int
+    streak_freezes: int
+    max_streak_freezes: int
+    streak_freeze_cost: int
     daily_goal_xp: int
     daily_xp: int
     today: date
@@ -81,6 +84,7 @@ class SkillOut(BaseModel):
     lessons_completed: int
     total_lessons: int
     next_lesson_id: int | None
+    legendary: bool
 
 
 class UnitOut(BaseModel):
@@ -111,12 +115,14 @@ class LessonMeta(BaseModel):
 
 class AttemptOut(BaseModel):
     attempt_id: str
-    kind: Literal["lesson", "practice"]
+    kind: Literal["lesson", "practice", "legendary"]
     meta: LessonMeta
     exercises: list[dict[str, Any]]  # public payloads, answer keys removed
     hearts: int
     max_hearts: int
     hearts_enabled: bool
+    time_limit_seconds: int | None  # timed modes (legendary)
+    max_mistakes: int | None  # legendary: the run fails on this many mistakes
 
 
 class AnswerIn(BaseModel):
@@ -130,6 +136,7 @@ class AnswerOut(BaseModel):
     note: str | None
     hearts: int
     remaining: int
+    attempt_status: Literal["in_progress", "completed", "failed"]
 
 
 class NewAchievement(BaseModel):
@@ -140,6 +147,7 @@ class NewAchievement(BaseModel):
 
 
 class CompletionOut(BaseModel):
+    kind: Literal["lesson", "practice", "legendary"]
     xp_earned: int
     base_xp: int
     bonus_xp: int
@@ -148,10 +156,12 @@ class CompletionOut(BaseModel):
     perfect: bool
     streak: int
     streak_extended: bool
+    streak_freezes_used: int
     daily_xp: int
     daily_goal_xp: int
     daily_goal_reached_now: bool
     skill_completed: bool
+    legendary: bool
     skill_title: str | None
     gems_earned: int
     hearts: int
@@ -178,6 +188,24 @@ class LeaderboardOut(BaseModel):
     promotion_count: int
     demotion_count: int
     entries: list[LeaderboardEntry]
+
+
+# --------------------------------------------------------------------------- quests
+
+
+class QuestOut(BaseModel):
+    code: str
+    title: str
+    progress: int
+    target: int
+    completed: bool
+    claimed: bool
+    reward_gems: int
+
+
+class QuestsOut(BaseModel):
+    quests: list[QuestOut]
+    gems: int
 
 
 # --------------------------------------------------------------------------- dev
