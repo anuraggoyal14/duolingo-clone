@@ -1,0 +1,140 @@
+@import "tailwindcss";
+
+/* Dark mode is class-based so the Settings toggle can override the OS preference. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ------------------------------------------------------------------ design tokens */
+:root {
+  --bg: #ffffff;
+  --panel: #ffffff;
+  --text: #4b4b4b;
+  --text-strong: #3c3c3c;
+  --muted: #777777;
+  --faint: #afafaf;
+  --border: #e5e5e5;
+  --hover: #f7f7f7;
+  --locked: #e5e5e5;
+  --locked-shadow: #b7b7b7;
+  --selected-bg: #ddf4ff;
+  --selected-border: #84d8ff;
+  --selected-text: #1899d6;
+  --correct-bg: #d7ffb8;
+  --wrong-bg: #ffdfe0;
+}
+
+.dark {
+  --bg: #131f24;
+  --panel: #131f24;
+  --text: #f1f7fb;
+  --text-strong: #f1f7fb;
+  --muted: #a2b5bf;
+  --faint: #52656d;
+  --border: #37464f;
+  --hover: #202f36;
+  --locked: #37464f;
+  --locked-shadow: #2a363c;
+  --selected-bg: #1f3644;
+  --selected-border: #3f85a7;
+  --selected-text: #49c0f8;
+  --correct-bg: #202f36;
+  --wrong-bg: #202f36;
+}
+
+@theme inline {
+  --font-sans: var(--font-nunito);
+
+  --color-bg: var(--bg);
+  --color-panel: var(--panel);
+  --color-text: var(--text);
+  --color-strong: var(--text-strong);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-line: var(--border);
+  --color-hover: var(--hover);
+  --color-locked: var(--locked);
+  --color-locked-shadow: var(--locked-shadow);
+  --color-sel-bg: var(--selected-bg);
+  --color-sel-border: var(--selected-border);
+  --color-sel-text: var(--selected-text);
+  --color-correct-bg: var(--correct-bg);
+  --color-wrong-bg: var(--wrong-bg);
+
+  /* Duolingo-style brand palette (each color has a darker "lip" shade for 3D buttons) */
+  --color-owl: #58cc02;
+  --color-owl-dark: #58a700;
+  --color-owl-text: #58a700;
+  --color-sky: #1cb0f6;
+  --color-sky-dark: #1899d6;
+  --color-cardinal: #ff4b4b;
+  --color-cardinal-dark: #ea2b2b;
+  --color-bee: #ffc800;
+  --color-bee-dark: #e5a400;
+  --color-fox: #ff9600;
+  --color-fox-dark: #e58600;
+  --color-beetle: #ce82ff;
+  --color-beetle-dark: #a568cc;
+  --color-macaw: #1cb0f6;
+  --color-eel: #4b4b4b;
+}
+
+html,
+body {
+  background: var(--bg);
+  color: var(--text);
+}
+
+body {
+  font-family: var(--font-nunito), "Nunito", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ------------------------------------------------------------------ animations */
+@keyframes bounce-soft {
+  0%, 100% { transform: translate(-50%, 0); }
+  50% { transform: translate(-50%, -6px); }
+}
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
+}
+@keyframes pop-in {
+  0% { transform: scale(0.6); opacity: 0; }
+  70% { transform: scale(1.08); opacity: 1; }
+  100% { transform: scale(1); }
+}
+@keyframes slide-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0) rotate(-2deg); }
+  50% { transform: translateY(-8px) rotate(2deg); }
+}
+@keyframes confetti-fall {
+  0% { transform: translateY(-20vh) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(110vh) rotate(720deg); opacity: 0.9; }
+}
+@keyframes flame-flicker {
+  0%, 100% { transform: scale(1) rotate(-1deg); }
+  50% { transform: scale(1.06) rotate(1deg); }
+}
+
+.animate-bounce-soft { animation: bounce-soft 1.6s ease-in-out infinite; }
+.animate-shake { animation: shake 0.4s ease-in-out; }
+.animate-pop-in { animation: pop-in 0.35s ease-out both; }
+.animate-slide-up { animation: slide-up 0.2s ease-out both; }
+.animate-fade-in { animation: fade-in 0.2s ease-out both; }
+.animate-float { animation: float 3s ease-in-out infinite; }
+.animate-flame { animation: flame-flicker 1.2s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
