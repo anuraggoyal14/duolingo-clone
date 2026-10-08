@@ -2,6 +2,7 @@
 
 Content hierarchy:  Course -> Unit -> Skill -> Lesson -> Exercise
 Learner state:      User, UserSkillProgress, LessonAttempt, XpEvent, UserAchievement, DailyQuestClaim
+Payments:           Payment (Razorpay orders for Premium)
 Catalog / misc:     Achievement, AppSetting
 
 All timestamps are stored as naive UTC datetimes. Calendar dates used for streaks and
@@ -142,6 +143,8 @@ class User(Base):
     # Equipped streak freezes: each one protects the streak for one missed day.
     streak_freezes: Mapped[int] = mapped_column(Integer, default=0)
     daily_goal_xp: Mapped[int] = mapped_column(Integer, default=20)
+    # Premium (paid via Razorpay): unlimited hearts until this moment (naive UTC).
+    premium_until: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(DateTime)
 
@@ -252,6 +255,29 @@ class DailyQuestClaim(Base):
     day: Mapped[date] = mapped_column(Date)  # learner's local date
     gems_awarded: Mapped[int] = mapped_column(Integer)
     claimed_at: Mapped[datetime] = mapped_column(DateTime)
+
+
+class Payment(Base):
+    """One Razorpay order for Premium. A row is created with the order and marked `paid` only
+    after the payment signature is verified (by the checkout callback or the webhook)."""
+
+    __tablename__ = "payments"
+    __table_args__ = (
+        CheckConstraint("status IN ('created', 'paid')", name="ck_payment_status"),
+        CheckConstraint("amount > 0", name="ck_payment_amount_positive"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    provider: Mapped[str] = mapped_column(String(16), default="razorpay")
+    order_id: Mapped[str] = mapped_column(String(64), unique=True)
+    payment_id: Mapped[str | None] = mapped_column(String(64), unique=True, nullable=True)
+    amount: Mapped[int] = mapped_column(Integer)  # smallest currency unit (paise)
+    currency: Mapped[str] = mapped_column(String(8))
+    status: Mapped[str] = mapped_column(String(16), default="created")
+    premium_days: Mapped[int] = mapped_column(Integer)
+    created_at: Mapped[datetime] = mapped_column(DateTime)
+    paid_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
 
 class AppSetting(Base):

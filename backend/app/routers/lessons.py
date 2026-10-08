@@ -6,6 +6,7 @@ from app.schemas import AnswerIn, AnswerOut, AttemptOut, CompletionOut, LessonMe
 from app.services import gamification as game
 from app.services import lesson_flow
 from app.services.grading import public_payload
+from app.services.payments import is_premium
 
 router = APIRouter(tags=["lessons"])
 
@@ -40,7 +41,7 @@ def _attempt_out(ctx: RequestContext, attempt: LessonAttempt) -> AttemptOut:
         exercises=[public_payload(e) for e in lesson_flow.attempt_exercises(ctx.db, attempt)],
         hearts=ctx.user.hearts,
         max_hearts=game.MAX_HEARTS,
-        hearts_enabled=attempt.kind == "lesson",
+        hearts_enabled=attempt.kind == "lesson" and not is_premium(ctx.user, ctx.now),
         time_limit_seconds=(
             int((attempt.deadline_at - attempt.started_at).total_seconds()) if attempt.deadline_at else None
         ),

@@ -9,6 +9,7 @@ from app.deps import RequestContext
 from app.models import Course
 from app.schemas import CourseInfo, MeOut
 from app.services import gamification as game
+from app.services import payments
 
 
 def course_info(course: Course) -> CourseInfo:
@@ -41,6 +42,8 @@ def build_me(ctx: RequestContext) -> MeOut:
         streak_freezes=user.streak_freezes,
         max_streak_freezes=game.MAX_STREAK_FREEZES,
         streak_freeze_cost=game.STREAK_FREEZE_COST_GEMS,
+        is_premium=payments.is_premium(user, ctx.now),
+        premium_until=user.premium_until,
         daily_goal_xp=user.daily_goal_xp,
         daily_xp=game.xp_on(ctx.db, user.id, ctx.today),
         today=ctx.today,

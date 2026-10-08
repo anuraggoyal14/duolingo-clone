@@ -8,6 +8,7 @@ import type { Leaderboard } from "@/lib/types";
 import { useUser } from "@/lib/user-context";
 import { DailyQuestsCard } from "./DailyQuests";
 import { StatsBar } from "./StatsBar";
+import { PremiumPromo } from "@/components/premium/PremiumPromo";
 
 export function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return <section className={`rounded-2xl border-2 border-line p-5 ${className}`}>{children}</section>;
@@ -52,6 +53,7 @@ export function RightRail() {
   return (
     <aside className="sticky top-0 hidden h-screen w-[368px] shrink-0 flex-col gap-6 overflow-y-auto py-6 xl:flex">
       <StatsBar />
+      <PremiumPromo />
       <LeagueCard />
       <DailyQuestsCard />
       <footer className="flex flex-wrap justify-center gap-x-4 gap-y-1 px-4 text-xs font-bold uppercase text-faint">

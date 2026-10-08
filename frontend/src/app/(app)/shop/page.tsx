@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { PremiumPromo } from "@/components/premium/PremiumPromo";
 import { Button } from "@/components/ui/Button";
 import { DumbbellIcon, GemIcon, HeartIcon } from "@/components/ui/icons";
 import { useToast } from "@/components/ui/Toast";
@@ -91,9 +92,8 @@ export default function ShopPage() {
           </Button>
         }
       />
-      <div className="mt-10 rounded-2xl bg-gradient-to-r from-beetle to-sky p-6 text-white">
-        <h2 className="text-xl font-extrabold">Super subscription</h2>
-        <p className="font-bold text-white/90">Unlimited hearts, no ads and more. Coming soon!</p>
+      <div className="mt-10">
+        <PremiumPromo />
       </div>
     </div>
   );

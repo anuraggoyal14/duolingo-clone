@@ -6,6 +6,8 @@ import type {
   CoursePath,
   Leaderboard,
   Me,
+  PremiumOrder,
+  PremiumStatus,
   Profile,
   Quests,
 } from "./types";
@@ -68,6 +70,11 @@ export const api = {
 
   refillHearts: () => post<Me>("/shop/refill-hearts"),
   buyStreakFreeze: () => post<Me>("/shop/streak-freeze"),
+
+  premium: () => request<PremiumStatus>("/premium"),
+  createPremiumOrder: () => post<PremiumOrder>("/premium/order"),
+  verifyPremium: (payload: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }) =>
+    post<Me>("/premium/verify", payload),
 
   quests: () => request<Quests>("/quests"),
   claimQuest: (code: string) => post<Quests>(`/quests/${code}/claim`),

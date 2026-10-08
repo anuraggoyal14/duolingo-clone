@@ -58,8 +58,8 @@ export function StatsBar({ compact = false }: { compact?: boolean }) {
         {me.gems}
       </button>
       <button className={`${item} text-cardinal`} onClick={() => toggle("hearts")} aria-label={`${me.hearts} hearts`}>
-        <HeartIcon className="h-6 w-6" dim={me.hearts === 0} />
-        {me.hearts}
+        <HeartIcon className="h-6 w-6" dim={me.hearts === 0 && !me.is_premium} />
+        {me.is_premium ? "∞" : me.hearts}
       </button>
 
       {open && (

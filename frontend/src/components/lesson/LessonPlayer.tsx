@@ -367,6 +367,12 @@ export function LessonPlayer({ source }: { source: Source }) {
           >
             Refill · <GemIcon className="h-5 w-5" /> {me?.heart_refill_cost ?? 350}
           </Button>
+          <Link
+            href="/premium"
+            className="premium-gradient premium-shine flex h-12 w-full items-center justify-center gap-2 rounded-2xl border-b-4 border-black/20 text-[15px] font-extrabold uppercase tracking-wide text-white"
+          >
+            👑 Unlimited hearts with Premium
+          </Link>
           <Link href="/practice" onClick={() => setOutOfHearts(false)}>
             <Button variant="outline" fullWidth>
               Practice to earn hearts

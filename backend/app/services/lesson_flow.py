@@ -23,6 +23,7 @@ from app.errors import AppError, NotFound
 from app.models import Exercise, Lesson, LessonAttempt, Skill, User, UserSkillProgress
 from app.services import gamification as game
 from app.services.grading import InvalidAnswer, grade
+from app.services.payments import is_premium
 from app.services.progress import skill_state
 
 PRACTICE_SIZE = 8
@@ -34,8 +35,8 @@ LEGENDARY_XP = 40
 DEADLINE_GRACE = timedelta(seconds=5)
 
 
-def _require_hearts(user: User) -> None:
-    if user.hearts <= 0:
+def _require_hearts(user: User, now: datetime) -> None:
+    if user.hearts <= 0 and not is_premium(user, now):
         raise AppError(403, "out_of_hearts", "You have no hearts left. Refill or practice to earn one.")
 
 
@@ -48,7 +49,7 @@ def start_lesson(db: Session, user: User, lesson_id: int, now: datetime) -> Less
         state.status == "active" and lesson.position > state.lessons_completed
     ):
         raise AppError(403, "lesson_locked", "Complete the previous lessons to unlock this one.")
-    _require_hearts(user)
+    _require_hearts(user, now)
 
     attempt = LessonAttempt(
         id=str(uuid.uuid4()),
@@ -158,7 +159,7 @@ def submit_answer(
     exercise = db.get(Exercise, exercise_id)
     already_correct = exercise_id in attempt.correct_ids
     if attempt.kind == "lesson" and not already_correct:
-        _require_hearts(user)
+        _require_hearts(user, now)
 
     try:
         result = grade(exercise, answer)
@@ -172,8 +173,8 @@ def submit_answer(
             attempt.correct_ids = [*attempt.correct_ids, exercise_id]  # reassign so JSON is flagged dirty
         else:
             attempt.mistakes += 1
-            if attempt.kind == "lesson":
-                game.lose_heart(user, now)
+            if attempt.kind == "lesson" and not is_premium(user, now):
+                game.lose_heart(user, now)  # Premium learners have unlimited hearts
             elif attempt.kind == "legendary" and attempt.mistakes >= LEGENDARY_MAX_MISTAKES:
                 _fail(attempt, now)
 

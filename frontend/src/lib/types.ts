@@ -25,6 +25,8 @@ export interface Me {
   streak_freezes: number;
   max_streak_freezes: number;
   streak_freeze_cost: number;
+  is_premium: boolean;
+  premium_until: string | null;
   daily_goal_xp: number;
   daily_xp: number;
   today: string;
@@ -215,4 +217,22 @@ export interface Quest {
 export interface Quests {
   quests: Quest[];
   gems: number;
+}
+
+export interface PremiumStatus {
+  payments_enabled: boolean;
+  price_inr: number;
+  days: number;
+  is_premium: boolean;
+  premium_until: string | null;
+}
+
+export interface PremiumOrder {
+  order_id: string;
+  amount: number;
+  currency: string;
+  key_id: string;
+  name: string;
+  description: string;
+  customer_name: string;
 }

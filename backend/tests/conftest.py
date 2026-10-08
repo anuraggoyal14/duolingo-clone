@@ -9,6 +9,9 @@ _TMP_DIR = tempfile.mkdtemp(prefix="duolingo-tests-")
 os.environ["DATABASE_URL"] = f"sqlite:///{os.path.join(_TMP_DIR, 'test.db')}"
 os.environ["ENABLE_DEV_TOOLS"] = "true"
 os.environ["DEFAULT_TIMEZONE"] = "UTC"
+# Payments start disabled in tests (and real keys from backend/.env are never used).
+for key in ("RAZORPAY_KEY_ID", "RAZORPAY_KEY_SECRET", "RAZORPAY_WEBHOOK_SECRET"):
+    os.environ[key] = ""
 
 from fastapi.testclient import TestClient  # noqa: E402
 

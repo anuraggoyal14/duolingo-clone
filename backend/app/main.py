@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.database import Base, SessionLocal, engine
 from app.errors import AppError, app_error_handler, validation_error_handler
-from app.routers import admin, course, dev, leaderboard, lessons, me, quests, shop
+from app.routers import admin, course, dev, leaderboard, lessons, me, premium, quests, shop
 from app.seed.seeder import seed_if_empty
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -34,7 +34,7 @@ app.add_exception_handler(RequestValidationError, validation_error_handler)
 
 for router in (
     me.router, course.router, lessons.router, leaderboard.router, quests.router, shop.router, dev.router,
-    admin.router,
+    admin.router, premium.router,
 ):
     app.include_router(router, prefix="/api")
 

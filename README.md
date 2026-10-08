@@ -10,7 +10,8 @@ A functional clone of the Duolingo web app. It covers the learning path, a lesso
 | **Frontend** | Next.js 15 (App Router) · TypeScript · Tailwind CSS v4 |
 | **Backend** | Python 3.12 · FastAPI · SQLAlchemy 2 · Pydantic 2 |
 | **Database** | SQLite (custom schema, auto-seeded on first start) |
-| **Tests** | pytest (47 unit + API tests) |
+| **Tests** | pytest (56 unit + API tests) |
+| **Payments** | Razorpay (Orders API + Standard Checkout, test mode) |
 
 ---
 
@@ -22,6 +23,7 @@ A functional clone of the Duolingo web app. It covers the learning path, a lesso
 - **Original illustrated cast:** four characters (Sofia, Mateo, Lucia, Diego) speak the sentences in translate and type exercises. First-person sentences get a matching speaker.
 - **Picture cards with original illustrations** for 30 vocabulary words (people, food, animals, home, travel). Any other word falls back to its emoji.
 - **Content Manager** (`/admin`, linked from Settings → Developer tools): browse the whole course with its answer keys, rename units and skills, and edit any exercise. Edits are validated on the server before they're saved.
+- **Premium with Razorpay** (`/premium`, plus the sidebar, the right-rail card, the shop and the out-of-hearts popup): "Get Premium" opens Razorpay Checkout. The server creates the order and decides the amount, and it activates Premium only after checking Razorpay's HMAC signature, either from the checkout callback or a webhook. Premium gives unlimited hearts for 30 days.
 - **Polish:** animated count-up stats on the lesson-complete screen, tips on the lesson loading screen, and a pop animation when hearts change.
 
 **Learning path**
@@ -333,6 +335,10 @@ Base path `/api`. Interactive docs are at `http://localhost:8000/docs`. All erro
 | GET | `/admin/content` | Full course tree including answer keys, plus totals by type (dev tools only) |
 | PATCH | `/admin/units/{id}` · `/admin/skills/{id}` | Rename a unit (title/description) or a skill (dev tools only) |
 | PATCH | `/admin/exercises/{id}` | Edit an exercise's prompt/content; the shape is validated per type (dev tools only) |
+| GET | `/premium` | Premium plan, price, whether payments are configured, and the learner's Premium status |
+| POST | `/premium/order` | Create a Razorpay order (amount set by the server) for Checkout |
+| POST | `/premium/verify` | Verify `razorpay_signature` (HMAC-SHA256 of `order_id\|payment_id`) and activate Premium. Idempotent |
+| POST | `/premium/webhook` | Razorpay webhook (`payment.captured`), verified with `X-Razorpay-Signature` |
 | GET | `/health` | Health check |
 
 Answer formats by exercise type:
@@ -363,7 +369,7 @@ Answer formats by exercise type:
 |---|---|---|
 | `BACKEND_URL` | `http://localhost:8000` | Where Next.js proxies `/api/*` (read at build time) |
 
-No secrets are required.
+**Payments (optional):** set `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET` (use **Test Mode** keys), plus `RAZORPAY_WEBHOOK_SECRET` if you configure a webhook. Locally, put them in `backend/.env`, which is git-ignored and loaded automatically. On Render, add them under **Environment**. Without keys, the app works normally and the Premium page shows that payments aren't configured. To test a payment, use card `4111 1111 1111 1111`, any future expiry date and any CVV.
 
 ---
 

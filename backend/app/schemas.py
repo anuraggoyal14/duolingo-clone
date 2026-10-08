@@ -33,6 +33,8 @@ class MeOut(BaseModel):
     streak_freezes: int
     max_streak_freezes: int
     streak_freeze_cost: int
+    is_premium: bool
+    premium_until: datetime | None
     daily_goal_xp: int
     daily_xp: int
     today: date
@@ -291,3 +293,30 @@ class AdminSkillUpdate(BaseModel):
 class AdminExerciseUpdate(BaseModel):
     prompt: ExercisePrompt | None = None
     content: dict[str, Any] | None = None  # replaces the whole payload; the type cannot change
+
+
+# --------------------------------------------------------------------------- premium
+
+
+class PremiumStatusOut(BaseModel):
+    payments_enabled: bool
+    price_inr: int
+    days: int
+    is_premium: bool
+    premium_until: datetime | None
+
+
+class PremiumOrderOut(BaseModel):
+    order_id: str
+    amount: int  # paise
+    currency: str
+    key_id: str
+    name: str
+    description: str
+    customer_name: str
+
+
+class PremiumVerifyIn(BaseModel):
+    razorpay_order_id: str = Field(min_length=1, max_length=64)
+    razorpay_payment_id: str = Field(min_length=1, max_length=64)
+    razorpay_signature: str = Field(min_length=1, max_length=128)

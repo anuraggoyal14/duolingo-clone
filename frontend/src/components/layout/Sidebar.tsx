@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  CrownIcon,
   HomeNavIcon,
   MoreNavIcon,
   ProfileNavIcon,
@@ -16,6 +17,7 @@ export const NAV_ITEMS = [
   { href: "/leaderboard", label: "Leaderboards", Icon: ShieldNavIcon },
   { href: "/quests", label: "Quests", Icon: QuestNavIcon },
   { href: "/shop", label: "Shop", Icon: ShopNavIcon },
+  { href: "/premium", label: "Premium", Icon: CrownIcon },
   { href: "/profile", label: "Profile", Icon: ProfileNavIcon },
   { href: "/settings", label: "More", Icon: MoreNavIcon },
 ];
