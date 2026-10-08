@@ -1,9 +1,9 @@
 """Pydantic request/response models (the public API contract)."""
 
 from datetime import date, datetime
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, StringConstraints
 
 # --------------------------------------------------------------------------- user
 
@@ -218,3 +218,76 @@ class AdvanceDayIn(BaseModel):
 class DevStateOut(BaseModel):
     day_offset: int
     today: date
+
+
+# --------------------------------------------------------------------------- admin (content manager)
+# Unlike the learner-facing models above, these include answer keys (`content` is the raw payload).
+
+# Titles are stripped first so whitespace-only values count as empty.
+ContentTitle = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=64)]
+ContentDescription = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=255)]
+ExercisePrompt = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=255)]
+
+
+class AdminExerciseOut(BaseModel):
+    id: int
+    position: int
+    type: str
+    prompt: str
+    content: dict[str, Any]  # everything except type/prompt, answer key included
+
+
+class AdminLessonOut(BaseModel):
+    id: int
+    position: int
+    exercises: list[AdminExerciseOut]
+
+
+class AdminSkillOut(BaseModel):
+    id: int
+    position: int
+    title: str
+    icon: str
+    lessons: list[AdminLessonOut]
+
+
+class AdminUnitOut(BaseModel):
+    id: int
+    position: int
+    title: str
+    description: str
+    color: str
+    skills: list[AdminSkillOut]
+
+
+class AdminCourseOut(BaseModel):
+    code: str
+    title: str
+
+
+class AdminTotals(BaseModel):
+    units: int
+    skills: int
+    lessons: int
+    exercises: int
+    by_type: dict[str, int]  # every exercise type, including those with zero exercises
+
+
+class AdminContentOut(BaseModel):
+    course: AdminCourseOut
+    units: list[AdminUnitOut]
+    totals: AdminTotals
+
+
+class AdminUnitUpdate(BaseModel):
+    title: ContentTitle | None = None
+    description: ContentDescription | None = None
+
+
+class AdminSkillUpdate(BaseModel):
+    title: ContentTitle | None = None
+
+
+class AdminExerciseUpdate(BaseModel):
+    prompt: ExercisePrompt | None = None
+    content: dict[str, Any] | None = None  # replaces the whole payload; the type cannot change

@@ -270,7 +270,10 @@ export function LessonPlayer({ source }: { source: Source }) {
           </>
         ) : (
           <div className={`flex items-center gap-1.5 text-lg font-extrabold ${heartsEnabled ? "text-cardinal" : "text-sky"}`}>
-            <HeartIcon className="h-7 w-7" dim={heartsEnabled && hearts === 0} />
+            {/* key={hearts} replays the pop animation whenever a heart is lost or regained */}
+            <span key={hearts} className="animate-pop-in">
+              <HeartIcon className="h-7 w-7" dim={heartsEnabled && hearts === 0} />
+            </span>
             {heartsEnabled ? hearts : "∞"}
           </div>
         )}
@@ -378,11 +381,21 @@ export function LessonPlayer({ source }: { source: Source }) {
   );
 }
 
+const LOADING_TIPS = [
+  "Tip: press 1–9 to pick an answer and Enter to check it.",
+  "Tip: answers you miss come back at the end of the lesson.",
+  "Tip: practise an old lesson to win back a heart.",
+  "Tip: a Streak Freeze keeps your streak safe for a day.",
+  "Tip: finish a skill, then try it in Legendary mode!",
+];
+
 function LessonLoading() {
+  const [tip] = useState(() => LOADING_TIPS[Math.floor(Math.random() * LOADING_TIPS.length)]);
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-4">
+    <div className="flex min-h-screen flex-col items-center justify-center gap-4 px-6 text-center">
       <Mascot mood="think" className="h-32 w-32 animate-float" />
       <p className="font-extrabold uppercase tracking-wide text-faint">Loading…</p>
+      <p className="max-w-xs font-bold text-muted">{tip}</p>
     </div>
   );
 }
