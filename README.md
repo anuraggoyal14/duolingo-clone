@@ -10,11 +10,19 @@ A functional clone of the Duolingo web app. It covers the learning path, a lesso
 | **Frontend** | Next.js 15 (App Router) · TypeScript · Tailwind CSS v4 |
 | **Backend** | Python 3.12 · FastAPI · SQLAlchemy 2 · Pydantic 2 |
 | **Database** | SQLite (custom schema, auto-seeded on first start) |
-| **Tests** | pytest (31 unit + API tests) |
+| **Tests** | pytest (47 unit + API tests) |
 
 ---
 
 ## Features
+
+**New in this version (v2)**
+- **Landing page** (`/`) with an illustrated hero, a language strip, feature sections and a footer.
+- **Course picker** (`/courses`): Spanish is playable and other languages show "Coming soon". The flag dropdown links here through "Add a new course".
+- **Original illustrated cast:** four characters (Sofia, Mateo, Lucia, Diego) speak the sentences in translate and type exercises. First-person sentences get a matching speaker.
+- **Picture cards with original illustrations** for 30 vocabulary words (people, food, animals, home, travel). Any other word falls back to its emoji.
+- **Content Manager** (`/admin`, linked from Settings → Developer tools): browse the whole course with its answer keys, rename units and skills, and edit any exercise. Edits are validated on the server before they're saved.
+- **Polish:** animated count-up stats on the lesson-complete screen, tips on the lesson loading screen, and a pop animation when hearts change.
 
 **Learning path**
 - Winding path of units and skills.
@@ -322,6 +330,9 @@ Base path `/api`. Interactive docs are at `http://localhost:8000/docs`. All erro
 | POST | `/quests/{code}/claim` | Open a completed quest's chest (+15 gems, once per day) |
 | POST | `/dev/advance-day` | Simulate days passing (`{days}`). Only when `ENABLE_DEV_TOOLS=true` |
 | POST | `/dev/reset` | Wipe progress and re-seed. Only when `ENABLE_DEV_TOOLS=true` |
+| GET | `/admin/content` | Full course tree including answer keys, plus totals by type (dev tools only) |
+| PATCH | `/admin/units/{id}` · `/admin/skills/{id}` | Rename a unit (title/description) or a skill (dev tools only) |
+| PATCH | `/admin/exercises/{id}` | Edit an exercise's prompt/content; the shape is validated per type (dev tools only) |
 | GET | `/health` | Health check |
 
 Answer formats by exercise type:
