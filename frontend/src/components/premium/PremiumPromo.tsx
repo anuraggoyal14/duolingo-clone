@@ -12,7 +12,7 @@ export function PremiumPromo({ compact = false }: { compact?: boolean }) {
 
   if (me.is_premium) {
     return (
-      <Link href="/premium" className="premium-gradient flex items-center gap-3 rounded-2xl p-4 text-white shadow-md">
+      <Link href="/premium" className="premium-gradient flex shrink-0 items-center gap-3 rounded-2xl p-4 text-white shadow-md">
         <span className="text-2xl">👑</span>
         <span className="flex-1 font-extrabold">Premium active · unlimited hearts</span>
       </Link>
@@ -22,7 +22,7 @@ export function PremiumPromo({ compact = false }: { compact?: boolean }) {
   return (
     <Link
       href="/premium"
-      className="premium-gradient premium-shine group block rounded-2xl p-5 text-white shadow-lg transition-transform hover:-translate-y-0.5"
+      className="premium-gradient premium-shine group block shrink-0 rounded-2xl p-5 text-white shadow-lg transition-transform hover:-translate-y-0.5"
     >
       <div className="flex items-center gap-4">
         <div className="relative shrink-0">
