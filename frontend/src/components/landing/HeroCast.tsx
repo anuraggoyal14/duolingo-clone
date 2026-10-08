@@ -5,7 +5,7 @@ import { FlameIcon, GemIcon, HeartIcon, XpIcon } from "@/components/ui/icons";
 /** Landing-page hero: the mascot surrounded by the cast and floating game rewards. */
 export function HeroCast() {
   return (
-    <div className="relative h-[320px] w-[340px] sm:h-[380px] sm:w-[420px]" aria-hidden>
+    <div className="relative h-[290px] w-[300px] sm:h-[380px] sm:w-[420px]" aria-hidden>
       <div className="absolute inset-8 rounded-full bg-correct-bg" />
       <Sofia mood="happy" className="absolute left-0 top-8 h-28 w-auto sm:h-32" />
       <Mateo mood="happy" className="absolute right-0 top-6 h-28 w-auto sm:h-32" />

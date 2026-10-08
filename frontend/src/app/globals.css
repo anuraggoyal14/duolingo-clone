@@ -5,6 +5,8 @@
 
 /* ------------------------------------------------------------------ design tokens */
 :root {
+  /* Lets the browser draw native scrollbars/controls in the matching theme */
+  color-scheme: light;
   --bg: #ffffff;
   --panel: #ffffff;
   --text: #4b4b4b;
@@ -23,6 +25,7 @@
 }
 
 .dark {
+  color-scheme: dark;
   --bg: #131f24;
   --panel: #131f24;
   --text: #f1f7fb;
@@ -168,3 +171,7 @@ body {
     animation-iteration-count: 1 !important;
   }
 }
+
+/* Scroll areas that should scroll without showing a second scrollbar (e.g. the right rail) */
+.scrollbar-none { scrollbar-width: none; }
+.scrollbar-none::-webkit-scrollbar { display: none; }

@@ -67,14 +67,14 @@ const FEATURES = [
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-bg">
+    <div className="min-h-screen overflow-x-hidden bg-bg">
       {/* Header */}
       <header className="sticky top-0 z-20 border-b-2 border-line bg-bg/95 backdrop-blur">
         <div className="mx-auto flex h-[70px] max-w-[988px] items-center justify-between px-4">
           <Link href="/" className="text-[32px] font-black tracking-tight text-owl">
             duolingo
           </Link>
-          <span className="text-sm font-extrabold uppercase tracking-wide text-faint">
+          <span className="hidden text-sm font-extrabold uppercase tracking-wide text-faint sm:inline">
             Site language: English
           </span>
         </div>

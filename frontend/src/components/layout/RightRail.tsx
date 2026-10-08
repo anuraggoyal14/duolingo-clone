@@ -51,7 +51,7 @@ function LeagueCard() {
 /** Desktop right column: stats, league, daily quests. */
 export function RightRail() {
   return (
-    <aside className="sticky top-0 hidden h-screen w-[368px] shrink-0 flex-col gap-6 overflow-y-auto py-6 xl:flex [&>*]:shrink-0">
+    <aside className="scrollbar-none sticky top-0 hidden h-screen w-[368px] shrink-0 flex-col gap-6 overflow-y-auto px-1 py-6 xl:flex [&>*]:shrink-0">
       <StatsBar />
       <PremiumPromo />
       <LeagueCard />
