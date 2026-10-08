@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { Button } from "@/components/ui/Button";
 import { FlameIcon, GemIcon, XpIcon } from "@/components/ui/icons";
 import { Mascot } from "@/components/ui/Mascot";
+import { useCountUp } from "@/lib/hooks";
 import type { Completion } from "@/lib/types";
 
 const CONFETTI_COLORS = ["#58cc02", "#1cb0f6", "#ffc800", "#ff4b4b", "#ce82ff", "#ff9600"];
@@ -39,13 +40,27 @@ export function Confetti() {
   );
 }
 
-function StatCard({ label, value, color, icon }: { label: string; value: React.ReactNode; color: string; icon: React.ReactNode }) {
+interface StatCardProps {
+  label: string;
+  value: number;
+  suffix?: string;
+  color: string;
+  icon: React.ReactNode;
+  order: number; // stagger position
+}
+
+function StatCard({ label, value, suffix = "", color, icon, order }: StatCardProps) {
+  const shown = useCountUp(value, 900, 250 + order * 250);
   return (
-    <div className="animate-pop-in flex-1 overflow-hidden rounded-2xl border-2" style={{ borderColor: color, background: color }}>
+    <div
+      className="animate-pop-in flex-1 overflow-hidden rounded-2xl border-2"
+      style={{ borderColor: color, background: color, animationDelay: `${order * 250}ms` }}
+    >
       <p className="py-1 text-center text-xs font-extrabold uppercase tracking-wide text-white">{label}</p>
-      <div className="flex items-center justify-center gap-2 rounded-xl bg-bg px-2 py-4 text-xl font-extrabold" style={{ color }}>
+      <div className="flex items-center justify-center gap-2 rounded-xl bg-bg px-2 py-4 text-xl font-extrabold tabular-nums" style={{ color }}>
         {icon}
-        {value}
+        {shown}
+        {suffix}
       </div>
     </div>
   );
@@ -80,15 +95,17 @@ export function LessonCompleteScreen({ result, onContinue }: { result: Completio
           )}
         </div>
         <div className="flex w-full max-w-md gap-3">
-          <StatCard label="Total XP" value={result.xp_earned} color="#ffc800" icon={<XpIcon className="h-6 w-6" />} />
+          <StatCard order={0} label="Total XP" value={result.xp_earned} color="#ffc800" icon={<XpIcon className="h-6 w-6" />} />
           <StatCard
+            order={1}
             label={result.accuracy >= 90 ? "Amazing" : result.accuracy >= 70 ? "Good" : "Accuracy"}
-            value={`${result.accuracy}%`}
+            value={result.accuracy}
+            suffix="%"
             color="#58cc02"
             icon={null}
           />
           {result.gems_earned > 0 && (
-            <StatCard label="Gems" value={result.gems_earned} color="#1cb0f6" icon={<GemIcon className="h-6 w-6" />} />
+            <StatCard order={2} label="Gems" value={result.gems_earned} color="#1cb0f6" icon={<GemIcon className="h-6 w-6" />} />
           )}
         </div>
         {result.daily_goal_reached_now && (

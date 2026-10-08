@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
-import { FlameIcon, GemIcon, HeartIcon, SpainFlag, XpIcon } from "@/components/ui/icons";
+import { FlameIcon, GemIcon, HeartIcon, XpIcon } from "@/components/ui/icons";
+import { SpainFlag } from "@/components/ui/flags";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { useCountdown } from "@/lib/hooks";
 import { useUser } from "@/lib/user-context";
@@ -82,7 +83,10 @@ function CoursePanel() {
         <SpainFlag className="h-7 w-9" />
         <span className="font-extrabold text-strong">Spanish</span>
       </div>
-      <p className="mt-3 text-sm text-muted">More languages are coming soon.</p>
+      <Link href="/courses" className="mt-3 flex items-center gap-3 rounded-xl border-2 border-dashed border-line p-3 font-extrabold text-muted hover:bg-hover">
+        <span className="flex h-7 w-9 items-center justify-center rounded-md bg-line text-lg">+</span>
+        Add a new course
+      </Link>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/Button";
+import { Button, LinkButton } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import { api, ApiError } from "@/lib/api";
 import { setSoundEnabled, soundEnabled } from "@/lib/audio";
@@ -139,6 +139,9 @@ export default function SettingsPage() {
             Simulate time passing to test streaks and heart regeneration. Today on the server: <b>{me.today}</b>
           </p>
           <div className="flex flex-wrap gap-3">
+            <LinkButton href="/admin" variant="outline" size="sm">
+              Open content manager
+            </LinkButton>
             <Button
               variant="outline"
               size="sm"

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { forwardRef } from "react";
 
 export type ButtonVariant =
@@ -28,31 +29,52 @@ const SIZES = {
   lg: "h-[50px] px-8 text-[15px]",
 };
 
-interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+interface StyleOptions {
   variant?: ButtonVariant;
   size?: keyof typeof SIZES;
   fullWidth?: boolean;
+  disabled?: boolean;
+  className?: string;
 }
 
+/** Class list for the 3D button look, shared by <Button> and <LinkButton>. */
+export function buttonClassName({ variant = "primary", size = "md", fullWidth, disabled, className = "" }: StyleOptions) {
+  return [
+    "inline-flex select-none items-center justify-center gap-2 rounded-2xl border-b-4 font-extrabold uppercase tracking-wide transition-[filter,transform] duration-100",
+    "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky",
+    disabled ? "" : "active:translate-y-[2px] active:border-b-2",
+    SIZES[size],
+    fullWidth ? "w-full" : "",
+    disabled ? VARIANTS.locked : VARIANTS[variant],
+    className,
+  ].join(" ");
+}
+
+interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement>, Omit<StyleOptions, "disabled"> {}
+
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
-  { variant = "primary", size = "md", fullWidth, className = "", disabled, ...props },
+  { variant, size, fullWidth, className, disabled, ...props },
   ref,
 ) {
-  const look = disabled ? VARIANTS.locked : VARIANTS[variant];
   return (
     <button
       ref={ref}
       disabled={disabled}
-      className={[
-        "inline-flex select-none items-center justify-center gap-2 rounded-2xl border-b-4 font-extrabold uppercase tracking-wide transition-[filter,transform] duration-100",
-        "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky",
-        disabled ? "" : "active:translate-y-[2px] active:border-b-2",
-        SIZES[size],
-        fullWidth ? "w-full" : "",
-        look,
-        className,
-      ].join(" ")}
+      className={buttonClassName({ variant, size, fullWidth, disabled, className })}
       {...props}
     />
   );
 });
+
+/** A link that looks like a button (avoids nesting <button> inside <a>). */
+export function LinkButton({
+  href,
+  children,
+  ...style
+}: Omit<StyleOptions, "disabled"> & { href: string; children: React.ReactNode }) {
+  return (
+    <Link href={href} className={buttonClassName(style)}>
+      {children}
+    </Link>
+  );
+}
