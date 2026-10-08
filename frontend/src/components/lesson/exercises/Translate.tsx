@@ -26,7 +26,7 @@ export function Translate({ exercise, locked, onAnswerChange }: ExerciseProps<Tr
   return (
     <div>
       <ExerciseTitle>{exercise.prompt}</ExerciseTitle>
-      <SpeechBubble text={exercise.source} lang={exercise.source_lang} />
+      <SpeechBubble text={exercise.source} lang={exercise.source_lang} seed={exercise.id} />
 
       {/* Answer area drawn on two "ruled" lines */}
       <div

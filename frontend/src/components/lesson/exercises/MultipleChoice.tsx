@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { artFor } from "@/components/art";
 import { speak } from "@/lib/audio";
 import type { MultipleChoiceExercise } from "@/lib/types";
 import { ExerciseTitle, type ExerciseProps } from "./shared";
 
 export function MultipleChoice({ exercise, locked, onAnswerChange }: ExerciseProps<MultipleChoiceExercise>) {
   const [selected, setSelected] = useState<number | null>(null);
-  const withPictures = exercise.choices.every((c) => c.emoji);
+  const withPictures = exercise.choices.every((c) => c.emoji || artFor(c.text));
 
   const choose = (index: number) => {
     if (locked) return;
@@ -40,9 +41,7 @@ export function MultipleChoice({ exercise, locked, onAnswerChange }: ExercisePro
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {exercise.choices.map((choice, i) => (
             <button key={i} type="button" onClick={() => choose(i)} className={`${optionClass(i)} flex flex-col p-3 sm:p-4`}>
-              <span className="flex flex-1 items-center justify-center py-4 text-6xl sm:py-8 sm:text-7xl" aria-hidden>
-                {choice.emoji}
-              </span>
+              <ChoicePicture text={choice.text} emoji={choice.emoji} />
               <span className="flex items-center justify-between gap-2 text-lg font-semibold">
                 <span>{choice.text}</span>
                 <NumberBadge n={i + 1} active={selected === i} />
@@ -72,6 +71,16 @@ function NumberBadge({ n, active }: { n: number; active: boolean }) {
       }`}
     >
       {n}
+    </span>
+  );
+}
+
+/** Illustrated picture for a vocabulary card, falling back to the seeded emoji. */
+function ChoicePicture({ text, emoji }: { text: string; emoji?: string }) {
+  const Art = artFor(text);
+  return (
+    <span className="flex flex-1 items-center justify-center py-3 text-6xl sm:py-6 sm:text-7xl" aria-hidden>
+      {Art ? <Art className="h-24 w-24 sm:h-32 sm:w-32" /> : emoji}
     </span>
   );
 }

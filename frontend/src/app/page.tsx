@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Diego, Lucia, Sofia } from "@/components/art";
 import { LinkButton } from "@/components/ui/Button";
 import {
   ChestIcon,
@@ -30,8 +31,9 @@ const FEATURES = [
     title: "built around how you learn",
     body: "Hear every Spanish sentence, get instant feedback after each answer, and see the questions you missed come back at the end of the lesson until they stick.",
     art: (
-      <div className="relative flex items-center justify-center">
-        <Mascot mood="think" className="h-48 w-48" />
+      <div className="relative flex items-end justify-center gap-2">
+        <Sofia mood="happy" className="h-48 w-auto" />
+        <Mascot mood="think" className="h-36 w-36" />
         <span className="absolute -right-4 top-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-sky text-white shadow-[0_4px_0_#1899d6]">
           <SpeakerIcon className="h-8 w-8" />
         </span>
@@ -53,9 +55,11 @@ const FEATURES = [
     title: "learn at your own pace",
     body: "Pick a daily goal that fits your day, protect your streak with a Streak Freeze, and practise old lessons whenever you want to win back hearts.",
     art: (
-      <div className="flex items-center justify-center gap-4">
-        <HeartIcon className="h-24 w-24 animate-float" />
-        <TrophyIcon className="h-24 w-24 text-bee" />
+      <div className="flex items-end justify-center gap-3">
+        <Diego mood="happy" className="h-44 w-auto" />
+        <HeartIcon className="mb-16 h-20 w-20 animate-float" />
+        <Lucia mood="happy" className="h-40 w-auto" />
+        <TrophyIcon className="mb-6 h-16 w-16 text-bee" />
       </div>
     ),
   },

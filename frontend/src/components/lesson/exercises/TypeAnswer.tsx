@@ -35,7 +35,7 @@ export function TypeAnswer({ exercise, locked, onAnswerChange, onSubmit }: Exerc
   return (
     <div>
       <ExerciseTitle>{exercise.prompt}</ExerciseTitle>
-      <SpeechBubble text={exercise.source} lang={exercise.source_lang} />
+      <SpeechBubble text={exercise.source} lang={exercise.source_lang} seed={exercise.id} />
       <textarea
         ref={inputRef}
         value={text}

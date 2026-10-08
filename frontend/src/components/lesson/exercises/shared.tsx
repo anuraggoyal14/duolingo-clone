@@ -1,7 +1,7 @@
 "use client";
 
 import { SpeakerIcon } from "@/components/ui/icons";
-import { Mascot } from "@/components/ui/Mascot";
+import { characterFor, Diego, Lucia, Mateo, Sofia, type CharacterComponent } from "@/components/art";
 import { canSpeak, speak } from "@/lib/audio";
 import type { AnswerValue, Exercise } from "@/lib/types";
 
@@ -43,11 +43,30 @@ export function SpeakButton({ text, lang, small = false }: { text: string; lang:
   );
 }
 
-/** Mascot with a speech bubble containing the sentence to translate. */
-export function SpeechBubble({ text, lang }: { text: string; lang: string }) {
+// First-person sentences ("I am a man", "Soy una niña") need a speaker who matches them.
+const SELF_DESCRIPTIONS: [RegExp, CharacterComponent][] = [
+  [/\b(man|hombre)\b/, Mateo],
+  [/\b(woman|mujer)\b/, Sofia],
+  [/\b(boy|niño)\b/, Diego],
+  [/\b(girl|niña)\b/, Lucia],
+];
+
+function speakerFor(text: string, seed: number): CharacterComponent {
+  const sentence = text.toLowerCase();
+  if (/\b(i am|i'm|yo soy|soy)\b/.test(sentence)) {
+    const match = SELF_DESCRIPTIONS.find(([pattern]) => pattern.test(sentence));
+    if (match) return match[1];
+  }
+  return characterFor(seed);
+}
+
+/** A cast character with a speech bubble. `seed` (the exercise id) picks the character so the
+ *  same exercise always gets the same speaker. */
+export function SpeechBubble({ text, lang, seed }: { text: string; lang: string; seed: number }) {
+  const Speaker = speakerFor(text, seed);
   return (
     <div className="mb-6 flex items-end gap-3">
-      <Mascot className="h-24 w-24 shrink-0 sm:h-32 sm:w-32" />
+      <Speaker className="h-28 w-auto shrink-0 sm:h-36" />
       <div className="relative mb-8 flex items-center gap-3 rounded-2xl border-2 border-line px-4 py-3">
         <span className="absolute -left-[9px] bottom-4 h-4 w-4 rotate-45 border-b-2 border-l-2 border-line bg-bg" />
         {lang === "es" && <SpeakButton text={text} lang={lang} small />}
