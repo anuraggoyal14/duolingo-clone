@@ -30,12 +30,9 @@ export function ProgressBar({ value, color = "owl", label, className = "h-4" }: 
         {pct > 4 && <div className="absolute inset-x-2 top-[22%] h-[28%] rounded-full bg-white/30" />}
       </div>
       {label && (
-        // The label sits in the middle: dark when it overlaps the fill, muted over the empty track.
-        <span
-          className={`absolute inset-0 flex items-center justify-center text-[11px] font-extrabold ${
-            pct >= 50 ? "text-[#4b4b4b]" : "text-muted"
-          }`}
-        >
+        // The centred label often straddles the fill and the empty track: dark grey reads well on
+        // both in light mode; dark mode needs white text with a shadow instead.
+        <span className="absolute inset-0 flex items-center justify-center text-[11px] font-extrabold text-[#4b4b4b] dark:text-white dark:[text-shadow:0_1px_2px_rgba(0,0,0,0.6)]">
           {label}
         </span>
       )}
