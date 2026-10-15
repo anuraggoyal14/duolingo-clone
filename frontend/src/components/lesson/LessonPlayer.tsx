@@ -396,7 +396,10 @@ const LOADING_TIPS = [
 ];
 
 function LessonLoading() {
-  const [tip] = useState(() => LOADING_TIPS[Math.floor(Math.random() * LOADING_TIPS.length)]);
+  // Server and browser must render the same first tip (otherwise React reports a hydration
+  // mismatch), so the random tip is only picked after mounting in the browser.
+  const [tip, setTip] = useState(LOADING_TIPS[0]);
+  useEffect(() => setTip(LOADING_TIPS[Math.floor(Math.random() * LOADING_TIPS.length)]), []);
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-4 px-6 text-center">
       <Mascot mood="think" className="h-32 w-32 animate-float" />
